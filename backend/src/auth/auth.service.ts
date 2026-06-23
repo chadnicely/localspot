@@ -4,7 +4,6 @@ import { UsersService } from '../users/users.service';
 import { PublishersService } from '../publishers/publishers.service';
 import { ListingsService } from '../listings/listings.service';
 import { LoginDto } from './dto/login.dto';
-import { ClaimPublisherDto } from './dto/claim-publisher.dto';
 import { ClaimListingDto } from './dto/claim-listing.dto';
 
 @Injectable()
@@ -23,21 +22,6 @@ export class AuthService {
     }
     const ok = await this.users.verifyPassword(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
-    return this.buildSession(user);
-  }
-
-  /** Publisher claims a local hub (creates publisher user + pending Publisher). */
-  async claimPublisher(dto: ClaimPublisherDto) {
-    await this.assertEmailFree(dto.email);
-    const user = await this.users.create(dto.name, dto.email, dto.password, 'publisher');
-    await this.publishers.createForUser(user._id.toString(), {
-      name: dto.name,
-      subdomain: dto.subdomain,
-      city: dto.city,
-      state: dto.state,
-      country: dto.country,
-      contactEmail: dto.email,
-    });
     return this.buildSession(user);
   }
 

@@ -25,10 +25,10 @@ onMounted(() => auth.hydrate());
             My Dashboard
           </NuxtLink>
           <template v-else>
-            <NuxtLink to="/login" class="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">
-              Sign in
-            </NuxtLink>
-            <NuxtLink to="/claim" class="btn-primary">Claim Your Hub</NuxtLink>
+            <a href="mailto:hello@onthespot.com" class="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">
+              Get a hub
+            </a>
+            <NuxtLink to="/login" class="btn-primary">Sign in</NuxtLink>
           </template>
         </nav>
       </div>

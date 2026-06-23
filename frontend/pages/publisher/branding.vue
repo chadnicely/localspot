@@ -59,7 +59,11 @@ async function uploadLogo(e: Event) {
 
 <template>
   <div>
-    <PageHeader title="Branding" subtitle="Customize how your public hub looks." />
+    <PageHeader title="Hub Setup" subtitle="Set up your white-label site — logo, colours, and details.">
+      <template #actions>
+        <a v-if="hub" :href="`/${hub.subdomain}`" target="_blank" class="btn-secondary">Preview my hub</a>
+      </template>
+    </PageHeader>
     <div class="max-w-2xl space-y-6 p-8">
       <div class="card p-6">
         <h2 class="mb-4 font-semibold text-gray-900">Logo</h2>

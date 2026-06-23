@@ -9,7 +9,7 @@ const nav = [
   { label: 'Listings', to: '/publisher/listings', icon: 'heroicons:rectangle-stack' },
   { label: 'Pending Claims', to: '/publisher/claims', icon: 'heroicons:inbox-arrow-down' },
   { label: 'Calendar', to: '/publisher/calendar', icon: 'heroicons:calendar-days' },
-  { label: 'Branding', to: '/publisher/branding', icon: 'heroicons:paint-brush' },
+  { label: 'Hub Setup', to: '/publisher/branding', icon: 'heroicons:paint-brush' },
 ];
 
 function isActive(to: string) {

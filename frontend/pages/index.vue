@@ -30,9 +30,10 @@ const hubs = [
           events, markets, and local businesses — all on your own branded site.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
-          <NuxtLink to="/claim" class="btn-primary px-6 py-3 text-base">Claim Your Local Hub</NuxtLink>
+          <a href="mailto:hello@onthespot.com" class="btn-primary px-6 py-3 text-base">Get Your Hub</a>
           <NuxtLink to="/login" class="btn-secondary px-6 py-3 text-base">Sign in</NuxtLink>
         </div>
+        <p class="mt-3 text-sm text-navy-300">Hubs are set up and assigned by the On The Spot team.</p>
       </div>
     </section>
 
@@ -71,11 +72,11 @@ const hubs = [
       <div class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 py-12 text-center sm:flex-row sm:text-left">
         <div>
           <h2 class="text-2xl font-bold">Ready to launch your local hub?</h2>
-          <p class="text-brand-100">Pick your subdomain and start in minutes.</p>
+          <p class="text-brand-100">Tell us about your community and we'll set you up.</p>
         </div>
-        <NuxtLink to="/claim" class="btn bg-white px-6 py-3 text-base text-brand-700 hover:bg-brand-50">
-          Claim Your Hub
-        </NuxtLink>
+        <a href="mailto:hello@onthespot.com" class="btn bg-white px-6 py-3 text-base text-brand-700 hover:bg-brand-50">
+          Get in touch
+        </a>
       </div>
     </section>
   </div>

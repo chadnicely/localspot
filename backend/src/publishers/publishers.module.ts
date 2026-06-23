@@ -5,9 +5,13 @@ import { PublishersService } from './publishers.service';
 import { PublishersMasterController } from './publishers.master.controller';
 import { PublishersSelfController } from './publishers.self.controller';
 import { PublishersPublicController } from './publishers.public.controller';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Publisher.name, schema: PublisherSchema }])],
+  imports: [
+    MongooseModule.forFeature([{ name: Publisher.name, schema: PublisherSchema }]),
+    UsersModule,
+  ],
   providers: [PublishersService],
   controllers: [
     PublishersMasterController,

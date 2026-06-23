@@ -7,6 +7,7 @@ import {
   CreatePublisherDto,
   UpdatePublisherDto,
 } from './dto/publisher.dto';
+import { UsersService } from '../users/users.service';
 import { slugify } from '../common/slug.util';
 import { isReservedSlug } from '../common/reserved-slugs';
 
@@ -14,6 +15,7 @@ import { isReservedSlug } from '../common/reserved-slugs';
 export class PublishersService {
   constructor(
     @InjectModel(Publisher.name) private readonly model: Model<PublisherDocument>,
+    private readonly users: UsersService,
   ) {}
 
   // ---- Tenant resolution ----
@@ -46,17 +48,6 @@ export class PublishersService {
     return pub;
   }
 
-  async createForUser(userId: string, data: CreatePublisherDto) {
-    const subdomain = await this.uniqueSubdomain(data.subdomain || data.name);
-    return this.model.create({
-      ...data,
-      userId: new Types.ObjectId(userId),
-      slug: subdomain,
-      subdomain,
-      status: 'pending',
-    });
-  }
-
   async updateOwn(userId: string, dto: UpdatePublisherDto) {
     const pub = await this.getOwnOrThrow(userId);
     Object.assign(pub, dto);
@@ -83,9 +74,47 @@ export class PublishersService {
     return pub;
   }
 
+  /**
+   * Master admin creates a hub and the publisher account that owns it.
+   * Returns the publisher plus the temp password to share (if one was generated).
+   */
   async adminCreate(dto: CreatePublisherDto) {
+    const email = dto.ownerEmail.toLowerCase().trim();
+    if (await this.users.findByEmail(email)) {
+      throw new BadRequestException('A user with that email already exists');
+    }
     const subdomain = await this.uniqueSubdomain(dto.subdomain || dto.name);
-    return this.model.create({ ...dto, slug: subdomain, subdomain, status: 'approved' });
+    const tempPassword = dto.ownerPassword || this.randomPassword();
+    const owner = await this.users.create(dto.name, email, tempPassword, 'publisher');
+
+    const publisher = await this.model.create({
+      userId: owner._id,
+      name: dto.name,
+      slug: subdomain,
+      subdomain,
+      city: dto.city ?? '',
+      state: dto.state ?? '',
+      country: dto.country ?? 'USA',
+      primaryColor: dto.primaryColor ?? '#4f46e5',
+      secondaryColor: dto.secondaryColor ?? '#1f3559',
+      websiteUrl: dto.websiteUrl ?? '',
+      facebookUrl: dto.facebookUrl ?? '',
+      instagramUrl: dto.instagramUrl ?? '',
+      contactEmail: email,
+      status: 'approved',
+    });
+
+    return {
+      publisher,
+      ownerEmail: email,
+      tempPassword: dto.ownerPassword ? undefined : tempPassword,
+    };
+  }
+
+  private randomPassword() {
+    // Readable temp password the admin can hand off.
+    const part = () => Math.random().toString(36).slice(2, 6);
+    return `ots-${part()}-${part()}`;
   }
 
   async adminUpdate(id: string, dto: AdminUpdatePublisherDto) {

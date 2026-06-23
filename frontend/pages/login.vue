@@ -70,10 +70,10 @@ async function submit() {
       </form>
 
       <p class="mt-6 text-center text-sm text-gray-500">
-        Want a hub for your newsletter?
-        <NuxtLink to="/claim" class="font-medium text-brand-600 hover:text-brand-700">
-          Claim one
-        </NuxtLink>
+        Want a hub for your community?
+        <a href="mailto:hello@onthespot.com" class="font-medium text-brand-600 hover:text-brand-700">
+          Get in touch
+        </a>
       </p>
     </div>
   </div>

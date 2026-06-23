@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 /** Fields a publisher can edit on their own hub (branding + contact). */
 export class UpdatePublisherDto {
@@ -68,7 +68,7 @@ export class AdminUpdatePublisherDto extends PartialType(UpdatePublisherDto) {
   status?: string;
 }
 
-/** Master admin can create a publisher directly. */
+/** Master admin creates a publisher hub and assigns it to an owner account. */
 export class CreatePublisherDto extends UpdatePublisherDto {
   @ApiProperty()
   @IsString()
@@ -78,4 +78,14 @@ export class CreatePublisherDto extends UpdatePublisherDto {
   @ApiProperty({ example: 'northport', description: 'Subdomain for the hub' })
   @IsString()
   subdomain: string;
+
+  @ApiProperty({ example: 'owner@northportmatters.com', description: 'Login email for the publisher' })
+  @IsEmail()
+  ownerEmail: string;
+
+  @ApiPropertyOptional({ description: 'Temp password; auto-generated if omitted' })
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  ownerPassword?: string;
 }

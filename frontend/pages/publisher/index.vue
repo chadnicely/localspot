@@ -39,6 +39,34 @@ const tiles = computed(() => {
         approve it shortly.
       </div>
 
+      <!-- White-label setup callout -->
+      <div class="card flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
+        <div class="flex items-start gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+            <img v-if="hub?.logoUrl" :src="hub.logoUrl" class="h-full w-full object-cover" />
+            <Icon v-else name="heroicons:paint-brush" class="h-6 w-6 text-gray-400" />
+          </div>
+          <div>
+            <h2 class="font-semibold text-gray-900">
+              {{ hub?.logoUrl ? 'Your white-label hub' : 'Set up your white-label hub' }}
+            </h2>
+            <p class="text-sm text-gray-500">
+              Your site:
+              <a v-if="hub" :href="`/${hub.subdomain}`" target="_blank" class="font-medium text-brand-600">
+                {{ hub.subdomain }}.onthespot.com
+              </a>
+            </p>
+            <p v-if="!hub?.logoUrl" class="mt-1 text-xs text-amber-600">
+              Add your logo and brand colours to finish setup.
+            </p>
+          </div>
+        </div>
+        <NuxtLink to="/publisher/branding" class="btn-primary">
+          <Icon name="heroicons:paint-brush" class="h-4 w-4" />
+          {{ hub?.logoUrl ? 'Edit hub setup' : 'Set up my hub' }}
+        </NuxtLink>
+      </div>
+
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div v-for="t in tiles" :key="t.label" class="card p-5">
           <p class="text-3xl font-bold" :class="t.color">{{ t.value }}</p>
