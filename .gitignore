@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Env
+.env
+
+# Build output
+backend/dist/
+frontend/.nuxt/
+frontend/.output/
+
+# Uploads (user content)
+backend/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
