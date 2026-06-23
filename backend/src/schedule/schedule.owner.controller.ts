@@ -18,31 +18,40 @@ import type { AuthUser } from '../auth/current-user.decorator';
 @ApiTags('owner-schedule')
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard)
-@Controller('me/truck/schedule')
+@Controller('me/listings/:listingId/schedule')
 export class ScheduleOwnerController {
   constructor(private readonly schedule: ScheduleService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser) {
-    return this.schedule.listForOwner(user.id);
+  list(@CurrentUser() user: AuthUser, @Param('listingId') listingId: string) {
+    return this.schedule.listForOwnerListing(user.id, listingId);
   }
 
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateScheduleEntryDto) {
-    return this.schedule.createForOwner(user.id, dto);
+  create(
+    @CurrentUser() user: AuthUser,
+    @Param('listingId') listingId: string,
+    @Body() dto: CreateScheduleEntryDto,
+  ) {
+    return this.schedule.createForOwnerListing(user.id, listingId, dto);
   }
 
   @Patch(':id')
   update(
     @CurrentUser() user: AuthUser,
+    @Param('listingId') listingId: string,
     @Param('id') id: string,
     @Body() dto: UpdateScheduleEntryDto,
   ) {
-    return this.schedule.updateForOwner(user.id, id, dto);
+    return this.schedule.updateForOwnerListing(user.id, listingId, id, dto);
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.schedule.removeForOwner(user.id, id);
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('listingId') listingId: string,
+    @Param('id') id: string,
+  ) {
+    return this.schedule.removeForOwnerListing(user.id, listingId, id);
   }
 }

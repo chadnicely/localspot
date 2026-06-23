@@ -1,15 +1,18 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { TrucksService } from '../trucks/trucks.service';
+import { PublishersService } from '../publishers/publishers.service';
+import { ListingsService } from '../listings/listings.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { ClaimPublisherDto } from './dto/claim-publisher.dto';
+import { ClaimListingDto } from './dto/claim-listing.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly users: UsersService,
-    private readonly trucks: TrucksService,
+    private readonly publishers: PublishersService,
+    private readonly listings: ListingsService,
     private readonly jwt: JwtService,
   ) {}
 
@@ -19,25 +22,47 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
     const ok = await this.users.verifyPassword(dto.password, user.passwordHash);
-    if (!ok) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    if (!ok) throw new UnauthorizedException('Invalid credentials');
     return this.buildSession(user);
   }
 
-  async register(dto: RegisterDto) {
-    const existing = await this.users.findByEmail(dto.email);
-    if (existing) {
-      throw new BadRequestException('An account with that email already exists');
-    }
-    const user = await this.users.create(dto.truckName, dto.email, dto.password, 'truck_owner');
-    // Create the owner's pending food-truck profile (inactive until admin approves).
-    await this.trucks.createForOwner(user._id.toString(), {
-      name: dto.truckName,
-      email: dto.email,
-      plan: dto.plan,
+  /** Publisher claims a local hub (creates publisher user + pending Publisher). */
+  async claimPublisher(dto: ClaimPublisherDto) {
+    await this.assertEmailFree(dto.email);
+    const user = await this.users.create(dto.name, dto.email, dto.password, 'publisher');
+    await this.publishers.createForUser(user._id.toString(), {
+      name: dto.name,
+      subdomain: dto.subdomain,
+      city: dto.city,
+      state: dto.state,
+      country: dto.country,
+      contactEmail: dto.email,
     });
     return this.buildSession(user);
+  }
+
+  /** A business/vendor/truck/musician claims a listing under a hub. */
+  async claimListing(subdomain: string, dto: ClaimListingDto) {
+    const publisher = await this.publishers.resolveApproved(subdomain);
+    await this.assertEmailFree(dto.email);
+    const user = await this.users.create(dto.name, dto.email, dto.password, 'listing_owner');
+    await this.listings.createForClaim(publisher._id.toString(), user._id.toString(), {
+      type: dto.type,
+      name: dto.name,
+      description: dto.description,
+      category: dto.category,
+      cuisineType: dto.cuisineType,
+      phone: dto.phone,
+      websiteUrl: dto.websiteUrl,
+      email: dto.email,
+    });
+    return this.buildSession(user);
+  }
+
+  private async assertEmailFree(email: string) {
+    if (await this.users.findByEmail(email)) {
+      throw new BadRequestException('An account with that email already exists');
+    }
   }
 
   private async buildSession(user: {

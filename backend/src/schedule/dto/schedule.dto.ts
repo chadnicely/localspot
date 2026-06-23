@@ -14,6 +14,12 @@ export class CreateScheduleEntryDto {
   @IsIn(DAYS_OF_WEEK as unknown as string[])
   dayOfWeek: string;
 
+  @ApiPropertyOptional({ example: 'Live music night' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  title?: string;
+
   @ApiPropertyOptional({ example: '2026-07-06', description: 'Optional specific date (ISO)' })
   @IsOptional()
   @IsDateString()
@@ -42,6 +48,11 @@ export class CreateScheduleEntryDto {
   @IsString()
   city?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  state?: string;
+
   @ApiPropertyOptional({ description: 'Map latitude for this stop' })
   @IsOptional()
   @IsNumber()
@@ -55,12 +66,17 @@ export class CreateScheduleEntryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  externalLink?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   @MaxLength(500)
   notes?: string;
 
-  @ApiPropertyOptional({ enum: ['scheduled', 'canceled', 'updated'] })
+  @ApiPropertyOptional({ enum: ['active', 'cancelled', 'pending'] })
   @IsOptional()
-  @IsIn(['scheduled', 'canceled', 'updated'])
+  @IsIn(['active', 'cancelled', 'pending'])
   status?: string;
 }
 

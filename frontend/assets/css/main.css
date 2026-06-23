@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Per-tenant brand colour (overridden inline on the tenant layout). */
+:root {
+  --brand: #4f46e5;
+  --brand-dark: #1f3559;
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-50;
@@ -35,18 +41,27 @@
   }
 }
 
+/* Tenant-branded button (uses the active hub's primary colour). */
+.btn-brand {
+  @apply btn text-white;
+  background: var(--brand);
+}
+.btn-brand:hover {
+  filter: brightness(0.92);
+}
+
 /* Leaflet map markers */
 .ft-pin {
   width: 18px;
   height: 18px;
   border-radius: 50% 50% 50% 0;
-  background: #dc2626;
+  background: var(--brand, #dc2626);
   border: 2px solid #fff;
   transform: rotate(-45deg);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .ft-pop-link {
-  color: #dc2626;
+  color: var(--brand, #dc2626);
   font-weight: 600;
 }
 .leaflet-container {

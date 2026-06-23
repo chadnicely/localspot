@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { ClaimPublisherDto } from './dto/claim-publisher.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './current-user.decorator';
@@ -17,9 +17,10 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
-  @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
+  /** Publisher claims a local hub (onthespot.com → "Claim Your Local Hub"). */
+  @Post('claim-publisher')
+  claimPublisher(@Body() dto: ClaimPublisherDto) {
+    return this.auth.claimPublisher(dto);
   }
 
   @ApiBearerAuth('jwt')

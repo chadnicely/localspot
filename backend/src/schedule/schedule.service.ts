@@ -1,9 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ScheduleEntry, ScheduleEntryDocument } from './schedule-entry.schema';
-import { FoodTruck, FoodTruckDocument } from '../trucks/food-truck.schema';
-import { TrucksService } from '../trucks/trucks.service';
+import { Listing, ListingDocument } from '../listings/listing.schema';
+import { ListingsService } from '../listings/listings.service';
 import { CreateScheduleEntryDto, UpdateScheduleEntryDto } from './dto/schedule.dto';
 import { DAYS_OF_WEEK, dayNameFromDate } from '../common/food-categories';
 
@@ -12,14 +12,16 @@ const DAY_INDEX: Record<string, number> = DAYS_OF_WEEK.reduce(
   {},
 );
 
-function truckSummary(t: FoodTruckDocument) {
+function listingSummary(l: ListingDocument) {
   return {
-    id: t._id.toString(),
-    name: t.name,
-    slug: t.slug,
-    logoUrl: t.logoUrl,
-    foodCategories: t.foodCategories,
-    isFeatured: t.isFeatured,
+    id: l._id.toString(),
+    name: l.name,
+    slug: l.slug,
+    logoUrl: l.logoUrl,
+    type: l.type,
+    category: l.category,
+    cuisineType: l.cuisineType,
+    featured: l.featured,
   };
 }
 
@@ -28,98 +30,113 @@ export class ScheduleService {
   constructor(
     @InjectModel(ScheduleEntry.name)
     private readonly model: Model<ScheduleEntryDocument>,
-    @InjectModel(FoodTruck.name)
-    private readonly truckModel: Model<FoodTruckDocument>,
-    private readonly trucks: TrucksService,
+    @InjectModel(Listing.name)
+    private readonly listingModel: Model<ListingDocument>,
+    private readonly listings: ListingsService,
   ) {}
 
-  // ---- Owner CRUD (scoped to the owner's truck) ----
+  // ---- Owner CRUD (scoped to an owned listing) ----
 
-  async listForOwner(ownerUserId: string) {
-    const truck = await this.trucks.getOwnerTruckOrThrow(ownerUserId);
-    return this.sortEntries(await this.model.find({ foodTruckId: truck._id }).exec());
+  async listForOwnerListing(ownerUserId: string, listingId: string) {
+    await this.listings.getOwnedOrThrow(ownerUserId, listingId);
+    return this.sortEntries(
+      await this.model.find({ listingId: new Types.ObjectId(listingId) }).exec(),
+    );
   }
 
-  async createForOwner(ownerUserId: string, dto: CreateScheduleEntryDto) {
-    const truck = await this.trucks.getOwnerTruckOrThrow(ownerUserId);
+  async createForOwnerListing(
+    ownerUserId: string,
+    listingId: string,
+    dto: CreateScheduleEntryDto,
+  ) {
+    const listing = await this.listings.getOwnedOrThrow(ownerUserId, listingId);
     return this.model.create({
       ...dto,
       date: dto.date ? new Date(dto.date) : null,
-      foodTruckId: truck._id,
+      listingId: listing._id,
+      publisherId: listing.publisherId,
     });
   }
 
-  async updateForOwner(ownerUserId: string, entryId: string, dto: UpdateScheduleEntryDto) {
-    const truck = await this.trucks.getOwnerTruckOrThrow(ownerUserId);
-    await this.assertOwnsEntry(truck._id, entryId);
+  async updateForOwnerListing(
+    ownerUserId: string,
+    listingId: string,
+    entryId: string,
+    dto: UpdateScheduleEntryDto,
+  ) {
+    await this.listings.getOwnedOrThrow(ownerUserId, listingId);
+    const entry = await this.model.findById(entryId).exec();
+    if (!entry || entry.listingId.toString() !== listingId) {
+      throw new NotFoundException('Schedule entry not found');
+    }
     const update: Record<string, unknown> = { ...dto };
     if (dto.date !== undefined) update.date = dto.date ? new Date(dto.date) : null;
     return this.model.findByIdAndUpdate(entryId, update, { new: true }).exec();
   }
 
-  async removeForOwner(ownerUserId: string, entryId: string) {
-    const truck = await this.trucks.getOwnerTruckOrThrow(ownerUserId);
-    await this.assertOwnsEntry(truck._id, entryId);
-    await this.model.findByIdAndDelete(entryId).exec();
+  async removeForOwnerListing(ownerUserId: string, listingId: string, entryId: string) {
+    await this.listings.getOwnedOrThrow(ownerUserId, listingId);
+    await this.model
+      .deleteOne({ _id: new Types.ObjectId(entryId), listingId: new Types.ObjectId(listingId) })
+      .exec();
     return { deleted: true, id: entryId };
   }
 
-  // ---- Public calendar ----
+  // ---- Public calendar (tenant-scoped) ----
 
-  async calendarByDay(day: string) {
-    const trucks = await this.activeTruckMap();
+  async calendarByDay(publisherId: string, day: string) {
+    const listings = await this.approvedListingMap(publisherId);
     const entries = await this.model
       .find({
         dayOfWeek: day,
-        status: { $ne: 'canceled' },
-        foodTruckId: { $in: [...trucks.keys()].map((id) => new Types.ObjectId(id)) },
+        status: { $ne: 'cancelled' },
+        listingId: { $in: [...listings.keys()].map((id) => new Types.ObjectId(id)) },
       })
       .exec();
     return entries
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
-      .map((e) => ({
-        ...this.entryJson(e),
-        truck: trucks.get(e.foodTruckId.toString()),
-      }))
-      .filter((e) => e.truck);
+      .map((e) => ({ ...this.entryJson(e), listing: listings.get(e.listingId.toString()) }))
+      .filter((e) => e.listing);
   }
 
-  calendarToday() {
-    return this.calendarByDay(dayNameFromDate(new Date()));
+  calendarToday(publisherId: string) {
+    return this.calendarByDay(publisherId, dayNameFromDate(new Date()));
   }
 
-  /** Every active stop for the whole week, joined with truck summaries. */
-  async calendarWeek() {
-    const trucks = await this.activeTruckMap();
+  async calendarWeek(publisherId: string) {
+    const listings = await this.approvedListingMap(publisherId);
     const entries = await this.model
       .find({
-        status: { $ne: 'canceled' },
-        foodTruckId: { $in: [...trucks.keys()].map((id) => new Types.ObjectId(id)) },
+        status: { $ne: 'cancelled' },
+        listingId: { $in: [...listings.keys()].map((id) => new Types.ObjectId(id)) },
       })
       .exec();
     return this.sortEntries(entries)
-      .map((e) => ({ ...this.entryJson(e), truck: trucks.get(e.foodTruckId.toString()) }))
-      .filter((e) => e.truck);
+      .map((e) => ({ ...this.entryJson(e), listing: listings.get(e.listingId.toString()) }))
+      .filter((e) => e.listing);
   }
 
-  /** Public truck profile: the active truck plus its week schedule. */
-  async publicProfile(slug: string) {
-    const truck = await this.trucks.findPublicBySlug(slug);
+  /** Public listing profile: the approved listing plus its schedule. */
+  async publicProfile(publisherId: string, slug: string) {
+    const listing = await this.listings.findPublicBySlug(publisherId, slug);
     const entries = await this.model
-      .find({ foodTruckId: truck._id, status: { $ne: 'canceled' } })
+      .find({ listingId: listing._id, status: { $ne: 'cancelled' } })
       .exec();
-    return { truck, schedule: this.sortEntries(entries) };
+    return { listing, schedule: this.sortEntries(entries) };
   }
 
-  // ---- Admin ----
+  // ---- Publisher view ----
 
-  async findAllWithTrucks(day?: string) {
-    const trucks = await this.allTruckMap();
-    const filter = day ? { dayOfWeek: day } : {};
+  async allForPublisher(publisherId: string, day?: string) {
+    const listings = await this.allListingMap(publisherId);
+    const filter: Record<string, unknown> = {
+      publisherId: new Types.ObjectId(publisherId),
+    };
+    if (day) filter.dayOfWeek = day;
     const entries = await this.model.find(filter).exec();
     return this.sortEntries(entries).map((e) => ({
       ...this.entryJson(e),
-      truck: trucks.get(e.foodTruckId.toString()),
+      listing: listings.get(e.listingId.toString()),
     }));
   }
 
@@ -128,7 +145,9 @@ export class ScheduleService {
   private entryJson(e: ScheduleEntryDocument) {
     return {
       id: e._id.toString(),
-      foodTruckId: e.foodTruckId.toString(),
+      listingId: e.listingId.toString(),
+      publisherId: e.publisherId.toString(),
+      title: e.title,
       date: e.date,
       dayOfWeek: e.dayOfWeek,
       startTime: e.startTime,
@@ -136,8 +155,10 @@ export class ScheduleService {
       locationName: e.locationName,
       address: e.address,
       city: e.city,
+      state: e.state,
       latitude: e.latitude,
       longitude: e.longitude,
+      externalLink: e.externalLink,
       notes: e.notes,
       status: e.status,
     };
@@ -150,24 +171,17 @@ export class ScheduleService {
     });
   }
 
-  private async assertOwnsEntry(truckId: Types.ObjectId, entryId: string) {
-    const entry = await this.model.findById(entryId).exec();
-    if (!entry) throw new NotFoundException('Schedule entry not found');
-    if (entry.foodTruckId.toString() !== truckId.toString()) {
-      throw new ForbiddenException('That schedule entry belongs to another truck');
-    }
-    return entry;
-  }
-
-  private async activeTruckMap() {
-    const trucks = await this.truckModel
-      .find({ isActive: true, paymentStatus: { $in: ['paid', 'comped', 'trial'] } })
+  private async approvedListingMap(publisherId: string) {
+    const listings = await this.listingModel
+      .find({ publisherId: new Types.ObjectId(publisherId), status: 'approved' })
       .exec();
-    return new Map(trucks.map((t) => [t._id.toString(), truckSummary(t)]));
+    return new Map(listings.map((l) => [l._id.toString(), listingSummary(l)]));
   }
 
-  private async allTruckMap() {
-    const trucks = await this.truckModel.find().exec();
-    return new Map(trucks.map((t) => [t._id.toString(), truckSummary(t)]));
+  private async allListingMap(publisherId: string) {
+    const listings = await this.listingModel
+      .find({ publisherId: new Types.ObjectId(publisherId) })
+      .exec();
+    return new Map(listings.map((l) => [l._id.toString(), listingSummary(l)]));
   }
 }

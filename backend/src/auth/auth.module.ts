@@ -3,15 +3,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
-import { TrucksModule } from '../trucks/trucks.module';
+import { PublishersModule } from '../publishers/publishers.module';
+import { ListingsModule } from '../listings/listings.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { ClaimController } from './claim.controller';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
     UsersModule,
-    TrucksModule,
+    PublishersModule,
+    ListingsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -19,13 +22,12 @@ import { JwtStrategy } from './jwt.strategy';
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET') ?? 'change-me',
         signOptions: {
-          // ms StringValue ('7d', '24h', ...) — config returns a plain string
           expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '7d') as unknown as number,
         },
       }),
     }),
   ],
   providers: [AuthService, JwtStrategy],
-  controllers: [AuthController],
+  controllers: [AuthController, ClaimController],
 })
 export class AuthModule {}

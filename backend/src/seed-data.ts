@@ -2,201 +2,279 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { UsersService } from './users/users.service';
-import { FoodTruck, FoodTruckDocument } from './trucks/food-truck.schema';
+import { Publisher, PublisherDocument } from './publishers/publisher.schema';
+import { Listing, ListingDocument } from './listings/listing.schema';
 import { ScheduleEntry, ScheduleEntryDocument } from './schedule/schedule-entry.schema';
 import { slugify } from './common/slug.util';
 
-interface TruckSeed {
+interface StopSeed {
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  locationName: string;
+  address?: string;
+  notes?: string;
+  lat?: number;
+  lng?: number;
+}
+
+interface ListingSeed {
+  type: string;
   name: string;
   ownerEmail: string;
   description: string;
-  foodCategories: string[];
+  category?: string;
+  cuisineType?: string;
   phone?: string;
   websiteUrl?: string;
   facebookUrl?: string;
   instagramUrl?: string;
-  isFeatured?: boolean;
-  schedule: Array<{
-    dayOfWeek: string;
-    startTime: string;
-    endTime: string;
-    locationName: string;
-    address?: string;
-    notes?: string;
-  }>;
+  featured?: boolean;
+  schedule?: StopSeed[];
 }
 
-/** Approximate map coordinates for the demo stop locations (North Port, FL area). */
-const LOCATION_COORDS: Record<string, [number, number]> = {
-  'City Hall Parking Lot': [27.0809, -82.236],
-  'Home Depot': [27.0456, -82.1995],
-  'North Port Brewing Co.': [27.044, -82.236],
-  'Farmers Market': [27.0625, -82.201],
-  'Walmart Parking Lot': [27.0461, -82.1991],
-  'Cocoplum Village Shops': [27.049, -82.184],
-  'Community Park': [27.053, -82.236],
-  'North Port High School': [27.066, -82.153],
-  'Butler Park': [27.047, -82.232],
-  'North Port Library': [27.054, -82.23],
-  'Sumter Crossing': [27.041, -82.148],
-  'Blue Ridge Park': [27.098, -82.185],
-  'Warm Mineral Springs': [27.0593, -82.2606],
-};
+interface PublisherSeed {
+  name: string;
+  subdomain: string;
+  city: string;
+  state: string;
+  primaryColor: string;
+  secondaryColor: string;
+  ownerEmail: string;
+  listings: ListingSeed[];
+}
 
-export const DEMO_TRUCKS: TruckSeed[] = [
+const PUBLISHERS: PublisherSeed[] = [
   {
-    name: "Rosie's Red Truck",
-    ownerEmail: 'rosie@example.com',
-    description:
-      "Rosie's Red Truck serves authentic Mexican street tacos, burritos, quesadillas and homemade salsa made fresh daily!",
-    foodCategories: ['Mexican', 'Tacos'],
-    phone: '(941) 555-0101',
-    websiteUrl: 'https://example.com/rosies',
-    facebookUrl: 'https://facebook.com/rosiesredtruck',
-    instagramUrl: 'https://instagram.com/rosiesredtruck',
-    isFeatured: true,
-    schedule: [
-      { dayOfWeek: 'Monday', startTime: '11:00', endTime: '14:00', locationName: 'City Hall Parking Lot', address: '4970 City Hall Blvd, North Port, FL', notes: 'Lunch service only' },
-      { dayOfWeek: 'Wednesday', startTime: '17:00', endTime: '20:00', locationName: 'Home Depot', address: '17000 Tamiami Trail, North Port, FL' },
-      { dayOfWeek: 'Friday', startTime: '17:00', endTime: '21:00', locationName: 'North Port Brewing Co.', address: '1750 S. Biscayne Dr, North Port, FL', notes: 'Great spot — outdoor seating!' },
-      { dayOfWeek: 'Saturday', startTime: '10:00', endTime: '14:00', locationName: 'Farmers Market' },
+    name: 'North Port Matters',
+    subdomain: 'northport',
+    city: 'North Port',
+    state: 'FL',
+    primaryColor: '#dc2626',
+    secondaryColor: '#1f3559',
+    ownerEmail: 'publisher@northportmatters.com',
+    listings: [
+      {
+        type: 'food_truck',
+        name: "Rosie's Red Truck",
+        ownerEmail: 'rosie@example.com',
+        description:
+          "Rosie's Red Truck serves authentic Mexican street tacos, burritos, quesadillas and homemade salsa made fresh daily!",
+        category: 'Mexican',
+        cuisineType: 'Mexican',
+        phone: '(941) 555-0101',
+        featured: true,
+        schedule: [
+          { dayOfWeek: 'Monday', startTime: '11:00', endTime: '14:00', locationName: 'City Hall Parking Lot', address: '4970 City Hall Blvd, North Port, FL', notes: 'Lunch only', lat: 27.0809, lng: -82.236 },
+          { dayOfWeek: 'Wednesday', startTime: '17:00', endTime: '20:00', locationName: 'Home Depot', lat: 27.0456, lng: -82.1995 },
+          { dayOfWeek: 'Friday', startTime: '17:00', endTime: '21:00', locationName: 'North Port Brewing Co.', notes: 'Outdoor seating!', lat: 27.044, lng: -82.236 },
+        ],
+      },
+      {
+        type: 'food_truck',
+        name: 'Big Daddy BBQ',
+        ownerEmail: 'bigdaddy@example.com',
+        description: 'Low-and-slow smoked brisket, pulled pork, ribs and classic Southern sides.',
+        category: 'BBQ',
+        cuisineType: 'BBQ',
+        phone: '(941) 555-0102',
+        schedule: [
+          { dayOfWeek: 'Monday', startTime: '11:00', endTime: '15:00', locationName: 'Walmart Parking Lot', lat: 27.0461, lng: -82.1991 },
+          { dayOfWeek: 'Saturday', startTime: '11:00', endTime: '16:00', locationName: 'Farmers Market', lat: 27.0625, lng: -82.201 },
+        ],
+      },
+      {
+        type: 'food_truck',
+        name: 'Kona Ice',
+        ownerEmail: 'kona@example.com',
+        description: 'Tropical shaved ice and sweet treats — perfect for a hot Florida afternoon.',
+        category: 'Dessert',
+        cuisineType: 'Dessert',
+        phone: '(941) 555-0103',
+        schedule: [
+          { dayOfWeek: 'Monday', startTime: '15:00', endTime: '19:00', locationName: 'Community Park', lat: 27.053, lng: -82.236 },
+          { dayOfWeek: 'Sunday', startTime: '12:00', endTime: '17:00', locationName: 'Butler Park', lat: 27.047, lng: -82.232 },
+        ],
+      },
+      {
+        type: 'business',
+        name: 'North Port Coffee Co.',
+        ownerEmail: 'npcoffee@example.com',
+        description: 'Locally roasted coffee, pastries, and a cozy spot to work or meet friends.',
+        category: 'Restaurant',
+        phone: '(941) 555-0110',
+        featured: true,
+      },
+      {
+        type: 'business',
+        name: 'Gulfshore Hardware',
+        ownerEmail: 'gulfshore@example.com',
+        description: 'Family-owned hardware store serving North Port since 1998.',
+        category: 'Home & Garden',
+        phone: '(941) 555-0111',
+      },
     ],
   },
   {
-    name: 'Big Daddy BBQ',
-    ownerEmail: 'bigdaddy@example.com',
-    description: 'Low-and-slow smoked brisket, pulled pork, ribs and all the classic Southern sides.',
-    foodCategories: ['BBQ', 'Comfort Food'],
-    phone: '(941) 555-0102',
-    schedule: [
-      { dayOfWeek: 'Monday', startTime: '11:00', endTime: '15:00', locationName: 'Walmart Parking Lot', address: '17000 Tamiami Trail, North Port, FL' },
-      { dayOfWeek: 'Thursday', startTime: '16:00', endTime: '20:00', locationName: 'Cocoplum Village Shops' },
-      { dayOfWeek: 'Saturday', startTime: '11:00', endTime: '16:00', locationName: 'Farmers Market' },
-    ],
-  },
-  {
-    name: 'Kona Ice',
-    ownerEmail: 'kona@example.com',
-    description: 'Tropical shaved ice and sweet treats — perfect for a hot Florida afternoon.',
-    foodCategories: ['Dessert', 'Ice Cream'],
-    phone: '(941) 555-0103',
-    schedule: [
-      { dayOfWeek: 'Monday', startTime: '15:00', endTime: '19:00', locationName: 'Community Park' },
-      { dayOfWeek: 'Wednesday', startTime: '15:00', endTime: '19:00', locationName: 'North Port High School' },
-      { dayOfWeek: 'Sunday', startTime: '12:00', endTime: '17:00', locationName: 'Butler Park' },
-    ],
-  },
-  {
-    name: 'Café on Wheels',
-    ownerEmail: 'cafe@example.com',
-    description: 'Specialty espresso, cold brew, pastries and breakfast sandwiches on the go.',
-    foodCategories: ['Coffee', 'Breakfast'],
-    phone: '(941) 555-0104',
-    schedule: [
-      { dayOfWeek: 'Monday', startTime: '08:00', endTime: '12:00', locationName: 'North Port Library' },
-      { dayOfWeek: 'Tuesday', startTime: '07:00', endTime: '11:00', locationName: 'City Hall Parking Lot' },
-      { dayOfWeek: 'Friday', startTime: '07:00', endTime: '11:00', locationName: 'Cocoplum Village Shops' },
-    ],
-  },
-  {
-    name: 'Taco Express',
-    ownerEmail: 'tacoexpress@example.com',
-    description: 'Fast, fresh Mexican favorites — tacos, nachos, and loaded burritos.',
-    foodCategories: ['Mexican', 'Tacos'],
-    phone: '(941) 555-0105',
-    schedule: [
-      { dayOfWeek: 'Tuesday', startTime: '11:00', endTime: '14:00', locationName: 'Sumter Crossing' },
-      { dayOfWeek: 'Thursday', startTime: '17:00', endTime: '20:00', locationName: 'North Port Brewing Co.' },
-    ],
-  },
-  {
-    name: 'The Pizza Spot',
-    ownerEmail: 'pizza@example.com',
-    description: 'Wood-fired Neapolitan pizzas made to order from a converted vintage truck.',
-    foodCategories: ['Pizza'],
-    phone: '(941) 555-0106',
-    schedule: [
-      { dayOfWeek: 'Wednesday', startTime: '16:00', endTime: '21:00', locationName: 'Blue Ridge Park' },
-      { dayOfWeek: 'Friday', startTime: '16:00', endTime: '21:00', locationName: 'Warm Mineral Springs' },
-      { dayOfWeek: 'Saturday', startTime: '16:00', endTime: '21:00', locationName: 'Farmers Market' },
+    name: 'West Valley Shoutouts',
+    subdomain: 'westvalley',
+    city: 'Buckeye',
+    state: 'AZ',
+    primaryColor: '#0d9488',
+    secondaryColor: '#0f3d3a',
+    ownerEmail: 'publisher@westvalley.com',
+    listings: [
+      {
+        type: 'food_truck',
+        name: 'Sonoran Dogs AZ',
+        ownerEmail: 'sonoran@example.com',
+        description: 'Bacon-wrapped Sonoran hot dogs, street corn, and aguas frescas.',
+        category: 'Mexican',
+        cuisineType: 'Mexican',
+        phone: '(623) 555-0201',
+        featured: true,
+        schedule: [
+          { dayOfWeek: 'Tuesday', startTime: '17:00', endTime: '21:00', locationName: 'Verrado Main Street', lat: 33.452, lng: -112.555 },
+          { dayOfWeek: 'Friday', startTime: '17:00', endTime: '22:00', locationName: 'Sundance Plaza', lat: 33.434, lng: -112.583 },
+        ],
+      },
+      {
+        type: 'food_truck',
+        name: 'Desert Smoke BBQ',
+        ownerEmail: 'desertsmoke@example.com',
+        description: 'Texas-style brisket and ribs smoked over mesquite.',
+        category: 'BBQ',
+        cuisineType: 'BBQ',
+        phone: '(623) 555-0202',
+        schedule: [
+          { dayOfWeek: 'Saturday', startTime: '11:00', endTime: '16:00', locationName: 'Buckeye Farmers Market', lat: 33.37, lng: -112.583 },
+        ],
+      },
+      {
+        type: 'business',
+        name: 'Cactus Bloom Boutique',
+        ownerEmail: 'cactusbloom@example.com',
+        description: 'Southwest-inspired clothing, gifts, and handmade jewelry.',
+        category: 'Retail',
+        phone: '(623) 555-0210',
+        featured: true,
+      },
     ],
   },
 ];
 
-/**
- * Idempotently seed an admin user + the demo trucks with schedules.
- * Works against any connected Mongo (real or in-memory).
- */
 export async function seedDatabase(app: INestApplicationContext): Promise<void> {
   const config = app.get(ConfigService);
   const users = app.get(UsersService);
-  const truckModel = app.get<Model<FoodTruckDocument>>(getModelToken(FoodTruck.name));
+  const publisherModel = app.get<Model<PublisherDocument>>(getModelToken(Publisher.name));
+  const listingModel = app.get<Model<ListingDocument>>(getModelToken(Listing.name));
   const scheduleModel = app.get<Model<ScheduleEntryDocument>>(getModelToken(ScheduleEntry.name));
 
-  const adminName = config.get<string>('ADMIN_SEED_NAME') ?? 'Admin';
-  const adminEmail = config.get<string>('ADMIN_SEED_EMAIL') ?? 'admin@example.com';
+  // 1. Master admin
+  const adminName = config.get<string>('ADMIN_SEED_NAME') ?? 'Master Admin';
+  const adminEmail = config.get<string>('ADMIN_SEED_EMAIL') ?? 'admin@onthespot.com';
   const adminPassword = config.get<string>('ADMIN_SEED_PASSWORD') ?? 'ChangeMe123!';
   if (await users.findByEmail(adminEmail)) {
-    console.log(`• Admin already exists (${adminEmail})`);
+    console.log(`• Master admin exists (${adminEmail})`);
   } else {
-    await users.createAdmin(adminName, adminEmail, adminPassword);
-    console.log(`✓ Created admin ${adminEmail} / ${adminPassword}`);
+    await users.createMasterAdmin(adminName, adminEmail, adminPassword);
+    console.log(`✓ Created master admin ${adminEmail} / ${adminPassword}`);
   }
 
-  for (const t of DEMO_TRUCKS) {
-    let owner = await users.findByEmail(t.ownerEmail);
-    if (!owner) {
-      owner = await users.create(t.name, t.ownerEmail, 'ChangeMe123!', 'truck_owner');
-      console.log(`✓ Created owner ${t.ownerEmail} / ChangeMe123!`);
-    } else {
-      console.log(`• Owner exists ${t.ownerEmail}`);
+  // 2. Publishers + their listings + schedules
+  for (const p of PUBLISHERS) {
+    let pubUser = await users.findByEmail(p.ownerEmail);
+    if (!pubUser) {
+      pubUser = await users.create(p.name, p.ownerEmail, 'ChangeMe123!', 'publisher');
+      console.log(`✓ Created publisher user ${p.ownerEmail} / ChangeMe123!`);
     }
 
-    const slug = slugify(t.name);
-    let truck = await truckModel.findOne({ slug }).exec();
-    const profile = {
-      ownerUserId: owner._id,
-      name: t.name,
-      slug,
-      description: t.description,
-      foodCategories: t.foodCategories,
-      phone: t.phone ?? '',
-      email: t.ownerEmail,
-      websiteUrl: t.websiteUrl ?? '',
-      facebookUrl: t.facebookUrl ?? '',
-      instagramUrl: t.instagramUrl ?? '',
-      isActive: true,
-      isFeatured: t.isFeatured ?? false,
-      paymentStatus: 'paid' as const,
-      plan: t.isFeatured ? 'featured' : 'weekly',
+    let publisher = await publisherModel.findOne({ subdomain: p.subdomain }).exec();
+    const pubProfile = {
+      userId: pubUser._id,
+      name: p.name,
+      slug: p.subdomain,
+      subdomain: p.subdomain,
+      city: p.city,
+      state: p.state,
+      country: 'USA',
+      primaryColor: p.primaryColor,
+      secondaryColor: p.secondaryColor,
+      contactEmail: p.ownerEmail,
+      status: 'approved' as const,
     };
-    if (!truck) {
-      truck = await truckModel.create(profile);
-      console.log(`✓ Created truck ${t.name}`);
+    if (!publisher) {
+      publisher = await publisherModel.create(pubProfile);
+      console.log(`✓ Created hub ${p.name} (${p.subdomain})`);
     } else {
-      await truckModel.updateOne({ _id: truck._id }, profile).exec();
-      console.log(`• Updated truck ${t.name}`);
+      await publisherModel.updateOne({ _id: publisher._id }, pubProfile).exec();
+      console.log(`• Updated hub ${p.name}`);
     }
 
-    await scheduleModel.deleteMany({ foodTruckId: truck._id }).exec();
-    await scheduleModel.insertMany(
-      t.schedule.map((s) => {
-        const coords = LOCATION_COORDS[s.locationName];
-        return {
-          ...s,
-          address: s.address ?? '',
-          city: 'North Port',
-          latitude: coords ? coords[0] : null,
-          longitude: coords ? coords[1] : null,
-          notes: s.notes ?? '',
-          status: 'scheduled',
-          date: null,
-          foodTruckId: truck!._id,
-        };
-      }),
-    );
-    console.log(`  ↳ ${t.schedule.length} schedule stops`);
+    for (const l of p.listings) {
+      let owner = await users.findByEmail(l.ownerEmail);
+      if (!owner) {
+        owner = await users.create(l.name, l.ownerEmail, 'ChangeMe123!', 'listing_owner');
+        console.log(`  ✓ Owner ${l.ownerEmail} / ChangeMe123!`);
+      }
+
+      const slug = slugify(l.name);
+      const listingProfile = {
+        publisherId: publisher._id,
+        ownerUserId: owner._id,
+        type: l.type,
+        name: l.name,
+        slug,
+        description: l.description,
+        category: l.category ?? '',
+        cuisineType: l.cuisineType ?? '',
+        phone: l.phone ?? '',
+        email: l.ownerEmail,
+        websiteUrl: l.websiteUrl ?? '',
+        facebookUrl: l.facebookUrl ?? '',
+        instagramUrl: l.instagramUrl ?? '',
+        status: 'approved' as const,
+        featured: l.featured ?? false,
+      };
+      let listing = await listingModel
+        .findOne({ publisherId: publisher._id, slug })
+        .exec();
+      if (!listing) {
+        listing = await listingModel.create(listingProfile);
+        console.log(`  ✓ Listing ${l.name} [${l.type}]`);
+      } else {
+        await listingModel.updateOne({ _id: listing._id }, listingProfile).exec();
+      }
+
+      // Reset + reseed schedule
+      await scheduleModel.deleteMany({ listingId: listing._id }).exec();
+      if (l.schedule?.length) {
+        await scheduleModel.insertMany(
+          l.schedule.map((s) => ({
+            publisherId: publisher!._id as Types.ObjectId,
+            listingId: listing!._id,
+            title: '',
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            locationName: s.locationName,
+            address: s.address ?? '',
+            city: p.city,
+            state: p.state,
+            latitude: s.lat ?? null,
+            longitude: s.lng ?? null,
+            externalLink: '',
+            notes: s.notes ?? '',
+            status: 'active',
+            date: null,
+          })),
+        );
+      }
+    }
   }
+
+  console.log('\nSeed summary:');
+  console.log(`  ${PUBLISHERS.length} hubs, ${PUBLISHERS.reduce((n, p) => n + p.listings.length, 0)} listings`);
 }

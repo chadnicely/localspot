@@ -2,7 +2,7 @@ import { useAuthStore } from '~/stores/auth';
 
 /**
  * Thin $fetch wrapper for the API. Attaches the JWT bearer token and
- * redirects to the login page on 401.
+ * redirects to login on 401.
  */
 export function useApi() {
   const config = useRuntimeConfig();
@@ -35,10 +35,8 @@ export function useApi() {
     patch: <T>(path: string, body?: any, opts = {}) =>
       request<T>(path, { method: 'PATCH', body, ...opts }),
     del: <T>(path: string, opts = {}) => request<T>(path, { method: 'DELETE', ...opts }),
-    /** Upload a file via multipart/form-data (no JSON content-type). */
     upload: <T>(path: string, formData: FormData) =>
       request<T>(path, { method: 'POST', body: formData }),
-    /** Absolute base URL of the API (for building upload links if needed). */
     base,
   };
 }

@@ -4,16 +4,22 @@ import { ScheduleEntry, ScheduleEntrySchema } from './schedule-entry.schema';
 import { ScheduleService } from './schedule.service';
 import { ScheduleOwnerController } from './schedule.owner.controller';
 import { SchedulePublicController } from './schedule.public.controller';
-import { ScheduleAdminController } from './schedule.admin.controller';
-import { TrucksModule } from '../trucks/trucks.module';
+import { SchedulePublisherController } from './schedule.publisher.controller';
+import { ListingsModule } from '../listings/listings.module';
+import { PublishersModule } from '../publishers/publishers.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: ScheduleEntry.name, schema: ScheduleEntrySchema }]),
-    TrucksModule,
+    ListingsModule,
+    PublishersModule,
   ],
   providers: [ScheduleService],
-  controllers: [ScheduleOwnerController, SchedulePublicController, ScheduleAdminController],
+  controllers: [
+    ScheduleOwnerController,
+    SchedulePublicController,
+    SchedulePublisherController,
+  ],
   exports: [ScheduleService],
 })
 export class ScheduleModule {}

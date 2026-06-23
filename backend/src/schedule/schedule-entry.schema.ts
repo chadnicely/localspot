@@ -3,14 +3,21 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type ScheduleEntryDocument = HydratedDocument<ScheduleEntry>;
 
-export type ScheduleStatus = 'scheduled' | 'canceled' | 'updated';
+export type ScheduleStatus = 'active' | 'cancelled' | 'pending';
 
 @Schema({ collection: 'schedule_entries', timestamps: true })
 export class ScheduleEntry {
-  @Prop({ type: Types.ObjectId, ref: 'FoodTruck', required: true, index: true })
-  foodTruckId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Publisher', required: true, index: true })
+  publisherId: Types.ObjectId;
 
-  /** Optional specific date for the stop. */
+  @Prop({ type: Types.ObjectId, ref: 'Listing', required: true, index: true })
+  listingId: Types.ObjectId;
+
+  /** Optional title (e.g. a gig name or event title). */
+  @Prop({ default: '' })
+  title: string;
+
+  /** Optional specific date for the stop/appearance. */
   @Prop({ type: Date, default: null })
   date: Date | null;
 
@@ -32,6 +39,9 @@ export class ScheduleEntry {
   @Prop({ default: '' })
   city: string;
 
+  @Prop({ default: '' })
+  state: string;
+
   /** Map coordinates for this stop (optional). */
   @Prop({ type: Number, default: null })
   latitude: number | null;
@@ -40,9 +50,12 @@ export class ScheduleEntry {
   longitude: number | null;
 
   @Prop({ default: '' })
+  externalLink: string;
+
+  @Prop({ default: '' })
   notes: string;
 
-  @Prop({ default: 'scheduled', index: true })
+  @Prop({ default: 'active', index: true })
   status: ScheduleStatus;
 }
 

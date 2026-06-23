@@ -16,7 +16,7 @@ export class UsersService {
     return this.userModel.findById(id).exec();
   }
 
-  async create(name: string, email: string, password: string, role: UserRole = 'truck_owner') {
+  async create(name: string, email: string, password: string, role: UserRole = 'listing_owner') {
     const passwordHash = await bcrypt.hash(password, 10);
     return this.userModel.create({
       name,
@@ -26,8 +26,8 @@ export class UsersService {
     });
   }
 
-  createAdmin(name: string, email: string, password: string) {
-    return this.create(name, email, password, 'admin');
+  createMasterAdmin(name: string, email: string, password: string) {
+    return this.create(name, email, password, 'master_admin');
   }
 
   verifyPassword(password: string, passwordHash: string) {

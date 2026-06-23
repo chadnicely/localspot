@@ -3,7 +3,7 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-export type UserRole = 'admin' | 'truck_owner';
+export type UserRole = 'master_admin' | 'publisher' | 'listing_owner';
 
 @Schema({ collection: 'users', timestamps: true })
 export class User {
@@ -16,7 +16,7 @@ export class User {
   @Prop({ required: true })
   passwordHash: string;
 
-  @Prop({ default: 'truck_owner' })
+  @Prop({ default: 'listing_owner' })
   role: UserRole;
 
   @Prop({ default: 'active' })

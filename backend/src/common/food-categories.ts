@@ -1,3 +1,29 @@
+/** The kinds of listing a hub can host. */
+export const LISTING_TYPES = [
+  'food_truck',
+  'business',
+  'musician',
+  'vendor',
+  'event_organizer',
+] as const;
+
+export type ListingTypeName = (typeof LISTING_TYPES)[number];
+
+/** General business categories (used for non-food listings). */
+export const BUSINESS_CATEGORIES = [
+  'Restaurant',
+  'Retail',
+  'Services',
+  'Health & Wellness',
+  'Beauty',
+  'Fitness',
+  'Entertainment',
+  'Professional',
+  'Home & Garden',
+  'Automotive',
+  'Other',
+] as const;
+
 /** Canonical list of food categories trucks can pick from (from the build spec). */
 export const FOOD_CATEGORIES = [
   'BBQ',

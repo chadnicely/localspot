@@ -1,37 +1,97 @@
+export type Role = 'master_admin' | 'publisher' | 'listing_owner';
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'truck_owner' | string;
+  role: Role | string;
 }
 
-export interface FoodTruck {
+export interface Publisher {
   _id: string;
-  ownerUserId: string;
+  userId: string;
   name: string;
   slug: string;
+  subdomain: string;
+  city: string;
+  state: string;
+  country: string;
   logoUrl: string;
-  mainImageUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  websiteUrl: string;
+  facebookUrl: string;
+  instagramUrl: string;
+  contactEmail: string;
+  status: 'pending' | 'approved' | 'suspended';
+  createdAt?: string;
+}
+
+/** Public branding payload (GET /public/:publisher). */
+export interface HubBranding {
+  id: string;
+  name: string;
+  subdomain: string;
+  city: string;
+  state: string;
+  logoUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  websiteUrl: string;
+  facebookUrl: string;
+  instagramUrl: string;
+}
+
+export type ListingType =
+  | 'food_truck'
+  | 'business'
+  | 'musician'
+  | 'vendor'
+  | 'event_organizer';
+
+export interface Listing {
+  _id: string;
+  publisherId: string;
+  ownerUserId: string;
+  type: ListingType;
+  name: string;
+  slug: string;
   description: string;
-  foodCategories: string[];
+  category: string;
+  cuisineType: string;
+  logoUrl: string;
+  coverImageUrl: string;
+  phone: string;
+  email: string;
   websiteUrl: string;
   facebookUrl: string;
   instagramUrl: string;
   menuUrl: string;
-  phone: string;
-  email: string;
-  isActive: boolean;
-  isFeatured: boolean;
-  paymentStatus: 'paid' | 'unpaid' | 'trial' | 'comped';
-  plan: string;
+  address: string;
+  city: string;
+  state: string;
+  status: 'pending' | 'approved' | 'suspended';
+  featured: boolean;
   createdAt?: string;
-  updatedAt?: string;
+}
+
+export interface ListingSummary {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string;
+  type: ListingType;
+  category: string;
+  cuisineType: string;
+  featured: boolean;
 }
 
 export interface ScheduleEntry {
   id?: string;
   _id?: string;
-  foodTruckId: string;
+  listingId: string;
+  publisherId: string;
+  title: string;
   date: string | null;
   dayOfWeek: string;
   startTime: string;
@@ -39,44 +99,48 @@ export interface ScheduleEntry {
   locationName: string;
   address: string;
   city: string;
+  state: string;
   latitude: number | null;
   longitude: number | null;
+  externalLink: string;
   notes: string;
-  status: 'scheduled' | 'canceled' | 'updated';
+  status: 'active' | 'cancelled' | 'pending';
 }
 
-export interface TruckSummary {
-  id: string;
-  name: string;
-  slug: string;
-  logoUrl: string;
-  foodCategories: string[];
-  isFeatured: boolean;
-}
-
-/** A schedule entry joined with its truck — returned by the public calendar. */
+/** A schedule entry joined with its listing — returned by the public calendar. */
 export interface CalendarStop extends ScheduleEntry {
-  truck: TruckSummary;
+  listing: ListingSummary;
 }
 
 export interface PublicProfile {
-  truck: FoodTruck;
+  listing: Listing;
   schedule: ScheduleEntry[];
 }
 
-export interface AdminDashboard {
-  totalTrucks: number;
-  activeTrucks: number;
-  pendingTrucks: number;
-  paidTrucks: number;
-  weeklyRevenue: number;
-  recentTrucks: Array<{
+export interface MasterDashboard {
+  totalPublishers: number;
+  pendingPublishers: number;
+  approvedPublishers: number;
+  totalListings: number;
+  pendingListings: number;
+  approvedListings: number;
+  listingsByType: Record<string, number>;
+  recentPublishers: Array<{ id: string; name: string; subdomain: string; status: string }>;
+  recentListings: Array<{ id: string; name: string; type: string; status: string }>;
+}
+
+export interface PublisherDashboard {
+  totalListings: number;
+  pendingListings: number;
+  approvedListings: number;
+  featuredListings: number;
+  scheduleStops: number;
+  recentListings: Array<{
     id: string;
     name: string;
+    type: string;
+    status: string;
     slug: string;
-    isActive: boolean;
-    paymentStatus: string;
-    updatedAt: string;
   }>;
 }
 
@@ -90,20 +154,25 @@ export const DAYS_OF_WEEK = [
   'Sunday',
 ] as const;
 
+export const LISTING_TYPES: { value: ListingType; label: string; icon: string }[] = [
+  { value: 'food_truck', label: 'Food Truck', icon: 'heroicons:truck' },
+  { value: 'business', label: 'Business', icon: 'heroicons:building-storefront' },
+  { value: 'musician', label: 'Musician / Band', icon: 'heroicons:musical-note' },
+  { value: 'vendor', label: 'Vendor', icon: 'heroicons:shopping-bag' },
+  { value: 'event_organizer', label: 'Event Organizer', icon: 'heroicons:calendar' },
+];
+
+export function listingTypeLabel(type: string): string {
+  return LISTING_TYPES.find((t) => t.value === type)?.label ?? type;
+}
+
 export const FOOD_CATEGORIES = [
-  'BBQ',
-  'Tacos',
-  'Burgers',
-  'Pizza',
-  'Coffee',
-  'Dessert',
-  'Ice Cream',
-  'Seafood',
-  'Asian',
-  'Mediterranean',
-  'Vegan',
-  'Breakfast',
-  'Comfort Food',
-  'Mexican',
-  'Other',
+  'BBQ', 'Tacos', 'Burgers', 'Pizza', 'Coffee', 'Dessert', 'Ice Cream',
+  'Seafood', 'Asian', 'Mediterranean', 'Vegan', 'Breakfast', 'Comfort Food',
+  'Mexican', 'Other',
+] as const;
+
+export const BUSINESS_CATEGORIES = [
+  'Restaurant', 'Retail', 'Services', 'Health & Wellness', 'Beauty', 'Fitness',
+  'Entertainment', 'Professional', 'Home & Garden', 'Automotive', 'Other',
 ] as const;

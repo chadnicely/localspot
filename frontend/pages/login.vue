@@ -3,6 +3,7 @@ import { useAuthStore } from '~/stores/auth';
 import type { AuthUser } from '~/types';
 
 definePageMeta({ layout: false });
+useHead({ title: 'Sign in · On The Spot' });
 
 const auth = useAuthStore();
 const api = useApi();
@@ -14,12 +15,8 @@ const loading = ref(false);
 
 onMounted(() => {
   auth.hydrate();
-  if (auth.isAuthenticated) redirectByRole();
+  if (auth.isAuthenticated) navigateTo(auth.home);
 });
-
-function redirectByRole() {
-  navigateTo(auth.isAdmin ? '/admin' : '/dashboard');
-}
 
 async function submit() {
   error.value = '';
@@ -30,7 +27,7 @@ async function submit() {
       password: password.value,
     });
     auth.setSession(res.accessToken, res.user);
-    redirectByRole();
+    await navigateTo(auth.home);
   } catch (e: any) {
     error.value = e?.data?.message || 'Login failed. Check your credentials.';
   } finally {
@@ -44,12 +41,12 @@ async function submit() {
     <div class="card w-full max-w-sm p-8">
       <NuxtLink to="/" class="mb-6 flex items-center gap-2">
         <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-          <Icon name="heroicons:truck" class="h-5 w-5" />
+          <Icon name="heroicons:map-pin" class="h-5 w-5" />
         </div>
-        <span class="text-lg font-semibold">Food Truck Calendar</span>
+        <span class="text-lg font-bold">On The Spot</span>
       </NuxtLink>
       <h1 class="mb-1 text-lg font-semibold text-gray-900">Sign in</h1>
-      <p class="mb-6 text-sm text-gray-500">Food-truck owner & admin access.</p>
+      <p class="mb-6 text-sm text-gray-500">Admins, publishers & listing owners.</p>
 
       <form class="space-y-4" @submit.prevent="submit">
         <div>
@@ -73,9 +70,9 @@ async function submit() {
       </form>
 
       <p class="mt-6 text-center text-sm text-gray-500">
-        New here?
-        <NuxtLink to="/signup" class="font-medium text-brand-600 hover:text-brand-700">
-          List your food truck
+        Want a hub for your newsletter?
+        <NuxtLink to="/claim" class="font-medium text-brand-600 hover:text-brand-700">
+          Claim one
         </NuxtLink>
       </p>
     </div>

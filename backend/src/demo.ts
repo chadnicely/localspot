@@ -23,7 +23,9 @@ async function main() {
   const port = Number(config.get('PORT') ?? 3001);
   await app.listen(port);
   console.log(`\n✓ Demo API ready at http://localhost:${port} (docs at /docs)`);
-  console.log('  Admin login: admin@northportmatters.com / ChangeMe123!');
+  console.log('  Master admin: admin@onthespot.com / ChangeMe123!');
+  console.log('  Publisher:    publisher@northportmatters.com / ChangeMe123!');
+  console.log('  Hubs:         /northport  and  /westvalley');
 
   const shutdown = async () => {
     await app.close();

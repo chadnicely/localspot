@@ -8,9 +8,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { TrucksModule } from './trucks/trucks.module';
+import { PublishersModule } from './publishers/publishers.module';
+import { ListingsModule } from './listings/listings.module';
 import { ScheduleModule } from './schedule/schedule.module';
-import { AdminModule } from './admin/admin.module';
+import { DashboardsModule } from './dashboards/dashboards.module';
 
 @Module({
   imports: [
@@ -18,15 +19,16 @@ import { AdminModule } from './admin/admin.module';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGODB_URI') ?? 'mongodb://localhost:27017/food_truck',
+        uri: config.get<string>('MONGODB_URI') ?? 'mongodb://localhost:27017/onthespot',
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     AuthModule,
     UsersModule,
-    TrucksModule,
+    PublishersModule,
+    ListingsModule,
     ScheduleModule,
-    AdminModule,
+    DashboardsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
