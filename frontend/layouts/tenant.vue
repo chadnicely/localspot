@@ -8,8 +8,9 @@ if (error.value) {
 }
 
 const brandStyle = computed(() => ({
-  '--brand': brand.value?.primaryColor || '#4f46e5',
-  '--brand-dark': brand.value?.secondaryColor || '#1f3559',
+  '--brand': calendar.value?.primaryColor || '#4f46e5',
+  '--brand-dark': calendar.value?.secondaryColor || '#1f3559',
+  '--accent': calendar.value?.accentColor || '#f59e0b',
 }));
 
 const initials = computed(() =>

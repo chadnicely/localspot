@@ -34,18 +34,31 @@ export interface Calendar {
   type: CalendarType;
   name: string;
   subdomain: string;
+  tagline: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  heroImageUrl: string;
   active: boolean;
   createdAt?: string;
 }
 
-/** Public hub payload (GET /public/:calendar): the calendar + its account branding. */
+/** Public hub payload (GET /public/:calendar): the calendar (theme) + its account. */
 export interface CalendarHub {
-  calendar: { id: string; name: string; type: CalendarType; subdomain: string };
+  calendar: {
+    id: string;
+    name: string;
+    type: CalendarType;
+    subdomain: string;
+    tagline: string;
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    heroImageUrl: string;
+  };
   brand: {
     accountName: string;
     logoUrl: string;
-    primaryColor: string;
-    secondaryColor: string;
     websiteUrl: string;
     facebookUrl: string;
     instagramUrl: string;

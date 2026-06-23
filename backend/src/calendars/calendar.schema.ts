@@ -21,6 +21,24 @@ export class Calendar {
   @Prop({ required: true, unique: true, index: true })
   subdomain: string;
 
+  /** Optional subheadline shown under the title on the front page. */
+  @Prop({ default: '' })
+  tagline: string;
+
+  /** Per-calendar theme. */
+  @Prop({ default: '#dc2626' })
+  primaryColor: string;
+
+  @Prop({ default: '#1f3559' })
+  secondaryColor: string;
+
+  @Prop({ default: '#f59e0b' })
+  accentColor: string;
+
+  /** Hero image shown on the calendar's front (home) page. */
+  @Prop({ default: '' })
+  heroImageUrl: string;
+
   @Prop({ default: true, index: true })
   active: boolean;
 }

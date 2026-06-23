@@ -24,4 +24,30 @@ export class UpdateCalendarDto extends PartialType(CreateCalendarDto) {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  tagline?: string;
+
+  @ApiPropertyOptional({ example: '#dc2626', description: 'Main theme color' })
+  @IsOptional()
+  @IsString()
+  primaryColor?: string;
+
+  @ApiPropertyOptional({ description: 'Supporting color (header)' })
+  @IsOptional()
+  @IsString()
+  secondaryColor?: string;
+
+  @ApiPropertyOptional({ description: 'Supporting accent color' })
+  @IsOptional()
+  @IsString()
+  accentColor?: string;
+
+  @ApiPropertyOptional({ description: 'Hero image URL for the front page' })
+  @IsOptional()
+  @IsString()
+  heroImageUrl?: string;
 }

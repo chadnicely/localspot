@@ -32,7 +32,29 @@ const listingsLabel = computed(() => (calendar.value ? calendarListingsLabel(cal
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl px-4 py-8">
+  <div>
+    <!-- Hero -->
+    <section
+      class="relative overflow-hidden text-white"
+      style="background: var(--brand-dark)"
+    >
+      <img
+        v-if="calendar?.heroImageUrl"
+        :src="calendar.heroImageUrl"
+        class="absolute inset-0 h-full w-full object-cover opacity-40"
+      />
+      <div class="relative mx-auto max-w-6xl px-4 py-14 text-center sm:py-20">
+        <h1 class="text-3xl font-extrabold tracking-tight drop-shadow sm:text-4xl">
+          {{ calendar?.name }}
+        </h1>
+        <p v-if="calendar?.tagline" class="mx-auto mt-2 max-w-2xl text-white/85">
+          {{ calendar.tagline }}
+        </p>
+        <NuxtLink :to="`/${sub}/calendar`" class="btn-brand mt-6">View the calendar</NuxtLink>
+      </div>
+    </section>
+
+    <div class="mx-auto max-w-6xl px-4 py-8">
     <section>
       <div class="mb-4 flex items-center justify-between">
         <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900">
@@ -55,5 +77,6 @@ const listingsLabel = computed(() => (calendar.value ? calendarListingsLabel(cal
         <ListingCard v-for="l in featured.slice(0, 4)" :key="l._id" :listing="l" :sub="sub" />
       </div>
     </section>
+    </div>
   </div>
 </template>

@@ -178,6 +178,10 @@ export async function seedDatabase(app: INestApplicationContext): Promise<void> 
       type: 'food_truck',
       name: a.calendarName,
       subdomain: a.calendarSubdomain,
+      tagline: `Find local food trucks in ${a.city} this week`,
+      primaryColor: a.primaryColor,
+      secondaryColor: a.secondaryColor,
+      accentColor: '#f59e0b',
       active: true,
     };
     if (!calendar) {

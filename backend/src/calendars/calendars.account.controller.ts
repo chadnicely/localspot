@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,9 +7,13 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ConfigService } from '@nestjs/config';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CalendarsService } from './calendars.service';
 import { CreateCalendarDto, UpdateCalendarDto } from './dto/calendar.dto';
 import { PublishersService } from '../publishers/publishers.service';
@@ -17,6 +22,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
+import { imageUploadOptions } from '../common/upload.config';
 
 @ApiTags('account-calendars')
 @ApiBearerAuth('jwt')
@@ -27,6 +33,7 @@ export class CalendarsAccountController {
   constructor(
     private readonly calendars: CalendarsService,
     private readonly publishers: PublishersService,
+    private readonly config: ConfigService,
   ) {}
 
   private async accId(user: AuthUser) {
@@ -62,4 +69,20 @@ export class CalendarsAccountController {
   async remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.calendars.removeForAccount(await this.accId(user), id);
   }
+
+  @Post(':id/hero')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', imageUploadOptions('calendar-hero')))
+  async uploadHero(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('No image file received');
+    const base = this.config.get<string>('PUBLIC_BASE_URL') ?? 'http://localhost:3001';
+    const url = `${base}/uploads/${file.filename}`;
+    const calendar = await this.calendars.setHeroImage(await this.accId(user), id, url);
+    return { url, calendar };
+  }
 }
+

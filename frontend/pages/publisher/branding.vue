@@ -82,8 +82,7 @@ async function useInitials() {
         <h2 class="mb-4 font-semibold text-gray-900">Logo</h2>
         <div class="flex items-center gap-5">
           <div
-            class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-gray-200 text-xl font-bold text-white"
-            :style="{ background: form.primaryColor || '#4f46e5' }"
+            class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-navy-700 text-xl font-bold text-white"
           >
             <img v-if="form.logoUrl" :src="form.logoUrl" class="h-full w-full object-cover" />
             <span v-else>{{ initials }}</span>
@@ -108,22 +107,10 @@ async function useInitials() {
           <div><label class="label">City</label><input v-model="form.city" class="input" /></div>
           <div><label class="label">State</label><input v-model="form.state" class="input" /></div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="label">Primary color</label>
-            <div class="flex items-center gap-2">
-              <input v-model="form.primaryColor" type="color" class="h-10 w-14 rounded border border-gray-300" />
-              <input v-model="form.primaryColor" class="input" />
-            </div>
-          </div>
-          <div>
-            <label class="label">Secondary color</label>
-            <div class="flex items-center gap-2">
-              <input v-model="form.secondaryColor" type="color" class="h-10 w-14 rounded border border-gray-300" />
-              <input v-model="form.secondaryColor" class="input" />
-            </div>
-          </div>
-        </div>
+        <p class="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
+          Theme colors and the front-page image are set per calendar — edit them in
+          <NuxtLink to="/publisher/calendars" class="font-medium text-brand-600">Calendars</NuxtLink>.
+        </p>
       </div>
 
       <div class="card grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">

@@ -37,12 +37,15 @@ export class CalendarsService {
         name: calendar.name,
         type: calendar.type,
         subdomain: calendar.subdomain,
+        tagline: calendar.tagline,
+        primaryColor: calendar.primaryColor,
+        secondaryColor: calendar.secondaryColor,
+        accentColor: calendar.accentColor,
+        heroImageUrl: calendar.heroImageUrl,
       },
       brand: {
         accountName: account.name,
         logoUrl: account.logoUrl,
-        primaryColor: account.primaryColor,
-        secondaryColor: account.secondaryColor,
         websiteUrl: account.websiteUrl,
         facebookUrl: account.facebookUrl,
         instagramUrl: account.instagramUrl,
@@ -50,6 +53,13 @@ export class CalendarsService {
         state: account.state,
       },
     };
+  }
+
+  async setHeroImage(publisherId: string, id: string, url: string) {
+    const cal = await this.getInAccountOrThrow(publisherId, id);
+    cal.heroImageUrl = url;
+    await cal.save();
+    return cal;
   }
 
   // ---- Account (publisher) ----
