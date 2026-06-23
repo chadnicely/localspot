@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { PublishersService } from '../publishers/publishers.service';
+import { CalendarsService } from '../calendars/calendars.service';
 import { ListingsService } from '../listings/listings.service';
 import { LoginDto } from './dto/login.dto';
 import { ClaimListingDto } from './dto/claim-listing.dto';
@@ -10,7 +10,7 @@ import { ClaimListingDto } from './dto/claim-listing.dto';
 export class AuthService {
   constructor(
     private readonly users: UsersService,
-    private readonly publishers: PublishersService,
+    private readonly calendars: CalendarsService,
     private readonly listings: ListingsService,
     private readonly jwt: JwtService,
   ) {}
@@ -25,21 +25,27 @@ export class AuthService {
     return this.buildSession(user);
   }
 
-  /** A business/vendor/truck/musician claims a listing under a hub. */
+  /** A business/vendor/truck/musician claims a listing on a calendar. */
   async claimListing(subdomain: string, dto: ClaimListingDto) {
-    const publisher = await this.publishers.resolveApproved(subdomain);
+    const { calendar, account } = await this.calendars.resolveActive(subdomain);
     await this.assertEmailFree(dto.email);
     const user = await this.users.create(dto.name, dto.email, dto.password, 'listing_owner');
-    await this.listings.createForClaim(publisher._id.toString(), user._id.toString(), {
-      type: dto.type,
-      name: dto.name,
-      description: dto.description,
-      category: dto.category,
-      cuisineType: dto.cuisineType,
-      phone: dto.phone,
-      websiteUrl: dto.websiteUrl,
-      email: dto.email,
-    });
+    await this.listings.createForClaim(
+      account._id.toString(),
+      calendar._id.toString(),
+      user._id.toString(),
+      calendar.type, // listing type = the calendar's vertical
+      {
+        type: calendar.type,
+        name: dto.name,
+        description: dto.description,
+        category: dto.category,
+        cuisineType: dto.cuisineType,
+        phone: dto.phone,
+        websiteUrl: dto.websiteUrl,
+        email: dto.email,
+      },
+    );
     return this.buildSession(user);
   }
 

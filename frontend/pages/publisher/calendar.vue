@@ -5,24 +5,27 @@ import { DAYS_OF_WEEK } from '~/types';
 definePageMeta({ layout: 'publisher', middleware: 'publisher' });
 
 const api = useApi();
+const { selected } = useCalendars();
 const day = ref('');
 
 const { data: entries, pending } = await useAsyncData(
-  'pub-schedule',
-  () => api.get<CalendarStop[]>(`/publisher/schedule${day.value ? `?day=${day.value}` : ''}`),
-  { watch: [day], default: () => [] as CalendarStop[] },
+  () => `acct-sched-${selected.value?._id || 'none'}-${day.value}`,
+  () =>
+    selected.value
+      ? api.get<CalendarStop[]>(`/publisher/calendars/${selected.value._id}/schedule${day.value ? `?day=${day.value}` : ''}`)
+      : Promise.resolve([] as CalendarStop[]),
+  { watch: [selected, day], default: () => [] as CalendarStop[] },
 );
 </script>
 
 <template>
   <div>
-    <PageHeader title="Hub Calendar" subtitle="Every scheduled stop across your listings." />
+    <PageHeader title="Schedule" :subtitle="selected ? `All stops in ${selected.name}` : ''" />
     <div class="p-8">
       <div class="mb-4 flex flex-wrap gap-2">
         <button class="chip" :class="day === '' ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300 bg-white text-gray-600'" @click="day = ''">All days</button>
         <button v-for="d in DAYS_OF_WEEK" :key="d" class="chip" :class="day === d ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300 bg-white text-gray-600'" @click="day = d">{{ shortDay(d) }}</button>
       </div>
-
       <div class="card overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">

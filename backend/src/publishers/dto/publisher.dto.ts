@@ -68,18 +68,14 @@ export class AdminUpdatePublisherDto extends PartialType(UpdatePublisherDto) {
   status?: string;
 }
 
-/** Master admin creates a publisher hub and assigns it to an owner account. */
+/** Master admin provisions a customer account + its owner login. */
 export class CreatePublisherDto extends UpdatePublisherDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'North Port Matters', description: 'Account / customer name' })
   @IsString()
   @MaxLength(120)
   name: string;
 
-  @ApiProperty({ example: 'northport', description: 'Subdomain for the hub' })
-  @IsString()
-  subdomain: string;
-
-  @ApiProperty({ example: 'owner@northportmatters.com', description: 'Login email for the publisher' })
+  @ApiProperty({ example: 'owner@northportmatters.com', description: 'Login email for the account owner' })
   @IsEmail()
   ownerEmail: string;
 

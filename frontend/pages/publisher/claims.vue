@@ -5,8 +5,15 @@ import { listingTypeLabel } from '~/types';
 definePageMeta({ layout: 'publisher', middleware: 'publisher' });
 
 const api = useApi();
-const { data: pending, refresh } = await useAsyncData('pub-claims', () =>
-  api.get<Listing[]>('/publisher/listings/pending'),
+const { selected } = useCalendars();
+
+const { data: pending, refresh } = await useAsyncData(
+  () => `claims-${selected.value?._id || 'none'}`,
+  () =>
+    selected.value
+      ? api.get<Listing[]>(`/publisher/calendars/${selected.value._id}/listings/pending`)
+      : Promise.resolve([] as Listing[]),
+  { watch: [selected], default: () => [] as Listing[] },
 );
 
 async function approve(l: Listing) {
@@ -22,7 +29,7 @@ async function reject(l: Listing) {
 
 <template>
   <div>
-    <PageHeader title="Pending Claims" subtitle="Businesses & vendors waiting for your approval." />
+    <PageHeader title="Pending Claims" :subtitle="selected ? `Submissions to ${selected.name}` : ''" />
     <div class="max-w-3xl space-y-4 p-8">
       <div v-for="l in pending || []" :key="l._id" class="card flex items-center justify-between p-5">
         <div class="flex items-center gap-3">
@@ -38,9 +45,7 @@ async function reject(l: Listing) {
           <button class="btn-danger px-3 py-1.5 text-sm" @click="reject(l)">Reject</button>
         </div>
       </div>
-      <div v-if="!(pending && pending.length)" class="card px-6 py-16 text-center text-gray-400">
-        No pending claims. 🎉
-      </div>
+      <div v-if="!(pending && pending.length)" class="card px-6 py-16 text-center text-gray-400">No pending claims. 🎉</div>
     </div>
   </div>
 </template>

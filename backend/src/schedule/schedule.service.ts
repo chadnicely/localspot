@@ -54,6 +54,7 @@ export class ScheduleService {
       ...dto,
       date: dto.date ? new Date(dto.date) : null,
       listingId: listing._id,
+      calendarId: listing.calendarId,
       publisherId: listing.publisherId,
     });
   }
@@ -82,10 +83,10 @@ export class ScheduleService {
     return { deleted: true, id: entryId };
   }
 
-  // ---- Public calendar (tenant-scoped) ----
+  // ---- Public calendar (calendar-scoped) ----
 
-  async calendarByDay(publisherId: string, day: string) {
-    const listings = await this.approvedListingMap(publisherId);
+  async calendarByDay(calendarId: string, day: string) {
+    const listings = await this.approvedListingMap(calendarId);
     const entries = await this.model
       .find({
         dayOfWeek: day,
@@ -99,12 +100,12 @@ export class ScheduleService {
       .filter((e) => e.listing);
   }
 
-  calendarToday(publisherId: string) {
-    return this.calendarByDay(publisherId, dayNameFromDate(new Date()));
+  calendarToday(calendarId: string) {
+    return this.calendarByDay(calendarId, dayNameFromDate(new Date()));
   }
 
-  async calendarWeek(publisherId: string) {
-    const listings = await this.approvedListingMap(publisherId);
+  async calendarWeek(calendarId: string) {
+    const listings = await this.approvedListingMap(calendarId);
     const entries = await this.model
       .find({
         status: { $ne: 'cancelled' },
@@ -117,21 +118,19 @@ export class ScheduleService {
   }
 
   /** Public listing profile: the approved listing plus its schedule. */
-  async publicProfile(publisherId: string, slug: string) {
-    const listing = await this.listings.findPublicBySlug(publisherId, slug);
+  async publicProfile(calendarId: string, slug: string) {
+    const listing = await this.listings.findPublicBySlug(calendarId, slug);
     const entries = await this.model
       .find({ listingId: listing._id, status: { $ne: 'cancelled' } })
       .exec();
     return { listing, schedule: this.sortEntries(entries) };
   }
 
-  // ---- Publisher view ----
+  // ---- Account view (per calendar) ----
 
-  async allForPublisher(publisherId: string, day?: string) {
-    const listings = await this.allListingMap(publisherId);
-    const filter: Record<string, unknown> = {
-      publisherId: new Types.ObjectId(publisherId),
-    };
+  async allForCalendar(calendarId: string, day?: string) {
+    const listings = await this.allListingMap(calendarId);
+    const filter: Record<string, unknown> = { calendarId: new Types.ObjectId(calendarId) };
     if (day) filter.dayOfWeek = day;
     const entries = await this.model.find(filter).exec();
     return this.sortEntries(entries).map((e) => ({
@@ -146,6 +145,7 @@ export class ScheduleService {
     return {
       id: e._id.toString(),
       listingId: e.listingId.toString(),
+      calendarId: e.calendarId.toString(),
       publisherId: e.publisherId.toString(),
       title: e.title,
       date: e.date,
@@ -171,16 +171,16 @@ export class ScheduleService {
     });
   }
 
-  private async approvedListingMap(publisherId: string) {
+  private async approvedListingMap(calendarId: string) {
     const listings = await this.listingModel
-      .find({ publisherId: new Types.ObjectId(publisherId), status: 'approved' })
+      .find({ calendarId: new Types.ObjectId(calendarId), status: 'approved' })
       .exec();
     return new Map(listings.map((l) => [l._id.toString(), listingSummary(l)]));
   }
 
-  private async allListingMap(publisherId: string) {
+  private async allListingMap(calendarId: string) {
     const listings = await this.listingModel
-      .find({ publisherId: new Types.ObjectId(publisherId) })
+      .find({ calendarId: new Types.ObjectId(calendarId) })
       .exec();
     return new Map(listings.map((l) => [l._id.toString(), listingSummary(l)]));
   }

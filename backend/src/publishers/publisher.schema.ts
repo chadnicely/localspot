@@ -7,18 +7,12 @@ export type PublisherStatus = 'pending' | 'approved' | 'suspended';
 
 @Schema({ collection: 'publishers', timestamps: true })
 export class Publisher {
+  // NOTE: Publisher == the customer Account. Subdomains live on Calendars now.
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
   name: string;
-
-  @Prop({ required: true, index: true })
-  slug: string;
-
-  /** The subdomain that resolves this hub, e.g. "northport" -> northport.onthespot.com */
-  @Prop({ required: true, unique: true, index: true })
-  subdomain: string;
 
   @Prop({ default: '' })
   city: string;

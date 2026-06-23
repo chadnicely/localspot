@@ -10,6 +10,9 @@ export class ScheduleEntry {
   @Prop({ type: Types.ObjectId, ref: 'Publisher', required: true, index: true })
   publisherId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Calendar', required: true, index: true })
+  calendarId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'Listing', required: true, index: true })
   listingId: Types.ObjectId;
 

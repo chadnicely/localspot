@@ -2,15 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Publisher, PublisherDocument } from '../publishers/publisher.schema';
+import { Calendar, CalendarDocument } from '../calendars/calendar.schema';
 import { Listing, ListingDocument } from '../listings/listing.schema';
 import { ListingsService } from '../listings/listings.service';
 import { ScheduleService } from '../schedule/schedule.service';
-import { LISTING_TYPES } from '../common/food-categories';
 
 @Injectable()
 export class DashboardsService {
   constructor(
     @InjectModel(Publisher.name) private readonly publisherModel: Model<PublisherDocument>,
+    @InjectModel(Calendar.name) private readonly calendarModel: Model<CalendarDocument>,
     @InjectModel(Listing.name) private readonly listingModel: Model<ListingDocument>,
     private readonly listings: ListingsService,
     private readonly schedule: ScheduleService,
@@ -19,43 +20,42 @@ export class DashboardsService {
   // ---- Master admin ----
 
   async master() {
-    const [publishers, listings] = await Promise.all([
+    const [accounts, calendars, listings] = await Promise.all([
       this.publisherModel.find().sort({ createdAt: -1 }).exec(),
-      this.listingModel.find().sort({ createdAt: -1 }).exec(),
+      this.calendarModel.find().sort({ createdAt: -1 }).exec(),
+      this.listingModel.find().exec(),
     ]);
 
-    const byType: Record<string, number> = {};
-    for (const t of LISTING_TYPES) byType[t] = 0;
-    for (const l of listings) byType[l.type] = (byType[l.type] ?? 0) + 1;
+    const calendarsByType: Record<string, number> = {};
+    for (const c of calendars) calendarsByType[c.type] = (calendarsByType[c.type] ?? 0) + 1;
 
     return {
-      totalPublishers: publishers.length,
-      pendingPublishers: publishers.filter((p) => p.status === 'pending').length,
-      approvedPublishers: publishers.filter((p) => p.status === 'approved').length,
+      totalAccounts: accounts.length,
+      totalCalendars: calendars.length,
+      activeCalendars: calendars.filter((c) => c.active).length,
       totalListings: listings.length,
       pendingListings: listings.filter((l) => l.status === 'pending').length,
-      approvedListings: listings.filter((l) => l.status === 'approved').length,
-      listingsByType: byType,
-      recentPublishers: publishers.slice(0, 6).map((p) => ({
-        id: p._id.toString(),
-        name: p.name,
-        subdomain: p.subdomain,
-        status: p.status,
+      calendarsByType,
+      recentAccounts: accounts.slice(0, 6).map((a) => ({
+        id: a._id.toString(),
+        name: a.name,
+        status: a.status,
       })),
-      recentListings: listings.slice(0, 6).map((l) => ({
-        id: l._id.toString(),
-        name: l.name,
-        type: l.type,
-        status: l.status,
+      recentCalendars: calendars.slice(0, 6).map((c) => ({
+        id: c._id.toString(),
+        name: c.name,
+        type: c.type,
+        subdomain: c.subdomain,
+        active: c.active,
       })),
     };
   }
 
-  // ---- Publisher (within tenant) ----
+  // ---- Account (per selected calendar) ----
 
-  async publisher(publisherId: string) {
-    const listings = await this.listings.findByPublisher(publisherId);
-    const stops = await this.schedule.allForPublisher(publisherId);
+  async calendar(calendarId: string) {
+    const listings = await this.listings.findByCalendar(calendarId);
+    const stops = await this.schedule.allForCalendar(calendarId);
     return {
       totalListings: listings.length,
       pendingListings: listings.filter((l) => l.status === 'pending').length,

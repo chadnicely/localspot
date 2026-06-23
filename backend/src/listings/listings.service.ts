@@ -47,47 +47,59 @@ export class ListingsService {
   }
 
   /** Created via the public claim flow — always pending. */
-  createForClaim(publisherId: string, ownerUserId: string, dto: CreateListingDto) {
-    return this.create(publisherId, ownerUserId, dto, 'pending');
+  createForClaim(
+    publisherId: string,
+    calendarId: string,
+    ownerUserId: string,
+    type: string,
+    dto: CreateListingDto,
+  ) {
+    return this.create(publisherId, calendarId, ownerUserId, type, dto, 'pending');
   }
 
-  // ---- Publisher ----
+  // ---- Account (publisher), scoped to a calendar ----
 
-  findByPublisher(publisherId: string) {
+  findByCalendar(calendarId: string) {
     return this.model
-      .find({ publisherId: new Types.ObjectId(publisherId) })
+      .find({ calendarId: new Types.ObjectId(calendarId) })
       .sort({ createdAt: -1 })
       .exec();
   }
 
-  findPendingByPublisher(publisherId: string) {
+  findPendingByCalendar(calendarId: string) {
     return this.model
-      .find({ publisherId: new Types.ObjectId(publisherId), status: 'pending' })
+      .find({ calendarId: new Types.ObjectId(calendarId), status: 'pending' })
       .sort({ createdAt: -1 })
       .exec();
   }
 
-  async getInPublisherOrThrow(publisherId: string, id: string) {
+  async getInAccountOrThrow(publisherId: string, id: string) {
     const listing = await this.model.findById(id).exec();
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.publisherId.toString() !== publisherId) {
-      throw new ForbiddenException('That listing belongs to another hub');
+      throw new ForbiddenException('That listing belongs to another account');
     }
     return listing;
   }
 
-  /** Publisher creates a listing in their own hub (approved immediately). */
-  publisherCreate(publisherId: string, ownerUserId: string, dto: CreateListingDto) {
-    return this.create(publisherId, ownerUserId, dto, 'approved');
+  /** Account creates a listing in one of their calendars (approved immediately). */
+  accountCreate(
+    publisherId: string,
+    calendarId: string,
+    ownerUserId: string,
+    type: string,
+    dto: CreateListingDto,
+  ) {
+    return this.create(publisherId, calendarId, ownerUserId, type, dto, 'approved');
   }
 
-  async publisherUpdate(publisherId: string, id: string, dto: ManageListingDto) {
-    const listing = await this.getInPublisherOrThrow(publisherId, id);
+  async accountUpdate(publisherId: string, id: string, dto: ManageListingDto) {
+    const listing = await this.getInAccountOrThrow(publisherId, id);
     return this.applyUpdate(listing, dto);
   }
 
-  async publisherRemove(publisherId: string, id: string) {
-    await this.getInPublisherOrThrow(publisherId, id);
+  async accountRemove(publisherId: string, id: string) {
+    await this.getInAccountOrThrow(publisherId, id);
     await this.model.findByIdAndDelete(id).exec();
     return { deleted: true, id };
   }
@@ -98,21 +110,20 @@ export class ListingsService {
     return this.model.find().sort({ createdAt: -1 }).exec();
   }
 
-  // ---- Public (tenant-scoped) ----
+  // ---- Public (calendar-scoped) ----
 
-  findPublicList(publisherId: string, filters: { type?: string; category?: string } = {}) {
+  findPublicByCalendar(calendarId: string, filters: { category?: string } = {}) {
     const query: Record<string, unknown> = {
-      publisherId: new Types.ObjectId(publisherId),
+      calendarId: new Types.ObjectId(calendarId),
       status: 'approved',
     };
-    if (filters.type) query.type = filters.type;
     if (filters.category) query.category = filters.category;
     return this.model.find(query).sort({ featured: -1, name: 1 }).exec();
   }
 
-  async findPublicBySlug(publisherId: string, slug: string) {
+  async findPublicBySlug(calendarId: string, slug: string) {
     const listing = await this.model
-      .findOne({ publisherId: new Types.ObjectId(publisherId), slug, status: 'approved' })
+      .findOne({ calendarId: new Types.ObjectId(calendarId), slug, status: 'approved' })
       .exec();
     if (!listing) throw new NotFoundException('Listing not found');
     return listing;
@@ -122,16 +133,20 @@ export class ListingsService {
 
   private async create(
     publisherId: string,
+    calendarId: string,
     ownerUserId: string,
+    type: string,
     dto: CreateListingDto,
     status: 'pending' | 'approved',
   ) {
-    const slug = await this.uniqueSlug(publisherId, dto.slug || dto.name);
+    const slug = await this.uniqueSlug(calendarId, dto.slug || dto.name);
     return this.model.create({
       ...dto,
+      type,
       slug,
       status,
       publisherId: new Types.ObjectId(publisherId),
+      calendarId: new Types.ObjectId(calendarId),
       ownerUserId: new Types.ObjectId(ownerUserId),
     });
   }
@@ -143,7 +158,7 @@ export class ListingsService {
     const update: Record<string, unknown> = { ...dto };
     if (dto.slug || dto.name) {
       update.slug = await this.uniqueSlug(
-        listing.publisherId.toString(),
+        listing.calendarId.toString(),
         dto.slug || dto.name || '',
         listing._id.toString(),
       );
@@ -153,7 +168,7 @@ export class ListingsService {
     return listing;
   }
 
-  private async uniqueSlug(publisherId: string, source: string, excludeId?: string) {
+  private async uniqueSlug(calendarId: string, source: string, excludeId?: string) {
     const base = slugify(source);
     if (!base) throw new BadRequestException('A listing name is required');
     let slug = base;
@@ -161,7 +176,7 @@ export class ListingsService {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const existing = await this.model
-        .findOne({ publisherId: new Types.ObjectId(publisherId), slug })
+        .findOne({ calendarId: new Types.ObjectId(calendarId), slug })
         .exec();
       if (!existing || existing._id.toString() === excludeId) return slug;
       slug = `${base}-${n++}`;

@@ -4,7 +4,6 @@ import { Publisher, PublisherSchema } from './publisher.schema';
 import { PublishersService } from './publishers.service';
 import { PublishersMasterController } from './publishers.master.controller';
 import { PublishersSelfController } from './publishers.self.controller';
-import { PublishersPublicController } from './publishers.public.controller';
 import { UsersModule } from '../users/users.module';
 
 @Module({
@@ -13,11 +12,7 @@ import { UsersModule } from '../users/users.module';
     UsersModule,
   ],
   providers: [PublishersService],
-  controllers: [
-    PublishersMasterController,
-    PublishersSelfController,
-    PublishersPublicController,
-  ],
+  controllers: [PublishersMasterController, PublishersSelfController],
   exports: [PublishersService, MongooseModule],
 })
 export class PublishersModule {}

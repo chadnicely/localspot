@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CalendarStop, Listing } from '~/types';
+import { calendarListingsLabel } from '~/types';
 import type { MapPoint } from '~/components/TruckMap.client.vue';
 
 definePageMeta({ layout: 'tenant' });
@@ -7,11 +8,11 @@ definePageMeta({ layout: 'tenant' });
 const route = useRoute();
 const api = useApi();
 const sub = computed(() => String(route.params.hub));
+const { calendar } = useCalendar();
 
-const [{ data: today }, { data: trucks }, { data: businesses }] = await Promise.all([
+const [{ data: today }, { data: listings }] = await Promise.all([
   useAsyncData(`home-today-${sub.value}`, () => api.get<CalendarStop[]>(`/public/${sub.value}/calendar/today`), { default: () => [] as CalendarStop[] }),
-  useAsyncData(`home-trucks-${sub.value}`, () => api.get<Listing[]>(`/public/${sub.value}/listings?type=food_truck`), { default: () => [] as Listing[] }),
-  useAsyncData(`home-biz-${sub.value}`, () => api.get<Listing[]>(`/public/${sub.value}/listings?type=business`), { default: () => [] as Listing[] }),
+  useAsyncData(`home-listings-${sub.value}`, () => api.get<Listing[]>(`/public/${sub.value}/listings`), { default: () => [] as Listing[] }),
 ]);
 
 const mapPoints = computed<MapPoint[]>(() =>
@@ -26,12 +27,12 @@ const mapPoints = computed<MapPoint[]>(() =>
     })),
 );
 
-const featuredBiz = computed(() => (businesses.value ?? []).filter((b) => b.featured));
+const featured = computed(() => (listings.value ?? []).filter((l) => l.featured));
+const listingsLabel = computed(() => (calendar.value ? calendarListingsLabel(calendar.value.type) : 'Listings'));
 </script>
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-8">
-    <!-- Happening today -->
     <section>
       <div class="mb-4 flex items-center justify-between">
         <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900">
@@ -45,25 +46,13 @@ const featuredBiz = computed(() => (businesses.value ?? []).filter((b) => b.feat
       <ListingGrid :stops="today || []" :sub="sub" empty-text="Nothing scheduled today — check the calendar." />
     </section>
 
-    <!-- Food trucks -->
-    <section v-if="trucks && trucks.length" class="mt-12">
+    <section v-if="featured.length" class="mt-12">
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-xl font-bold text-gray-900">Food Trucks</h2>
-        <NuxtLink :to="`/${sub}/food-trucks`" class="text-sm font-medium" :style="{ color: 'var(--brand)' }">View schedule →</NuxtLink>
+        <h2 class="text-xl font-bold text-gray-900">Featured</h2>
+        <NuxtLink :to="`/${sub}/directory`" class="text-sm font-medium" :style="{ color: 'var(--brand)' }">All {{ listingsLabel.toLowerCase() }} →</NuxtLink>
       </div>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ListingCard v-for="l in trucks.slice(0, 4)" :key="l._id" :listing="l" :sub="sub" />
-      </div>
-    </section>
-
-    <!-- Featured businesses -->
-    <section v-if="featuredBiz.length" class="mt-12">
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-xl font-bold text-gray-900">Featured Businesses</h2>
-        <NuxtLink :to="`/${sub}/businesses`" class="text-sm font-medium" :style="{ color: 'var(--brand)' }">All businesses →</NuxtLink>
-      </div>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ListingCard v-for="l in featuredBiz" :key="l._id" :listing="l" :sub="sub" />
+        <ListingCard v-for="l in featured.slice(0, 4)" :key="l._id" :listing="l" :sub="sub" />
       </div>
     </section>
   </div>

@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { LISTING_TYPES } from '../../common/food-categories';
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class ClaimListingDto {
-  @ApiProperty({ enum: LISTING_TYPES, example: 'food_truck' })
-  @IsIn(LISTING_TYPES as unknown as string[])
-  type: string;
+  // Listing type is taken from the calendar's vertical; this is ignored if sent.
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  type?: string;
 
   @ApiProperty({ example: "Rosie's Red Truck" })
   @IsString()

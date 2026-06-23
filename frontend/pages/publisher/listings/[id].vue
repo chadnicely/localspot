@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import type { Listing } from '~/types';
-import { LISTING_TYPES, FOOD_CATEGORIES, BUSINESS_CATEGORIES } from '~/types';
+import { FOOD_CATEGORIES } from '~/types';
 
 definePageMeta({ layout: 'publisher', middleware: 'publisher' });
 
 const route = useRoute();
 const api = useApi();
+const { selected } = useCalendars();
 const id = computed(() => String(route.params.id));
 const isNew = computed(() => id.value === 'new');
 
-const form = reactive<Partial<Listing>>({
-  type: 'food_truck',
-  status: 'approved',
-  featured: false,
-});
+const form = reactive<Partial<Listing>>({ status: 'approved', featured: false });
 
 if (!isNew.value) {
   const existing = await api.get<Listing>(`/publisher/listings/${id.value}`);
@@ -23,10 +20,6 @@ if (!isNew.value) {
 const saving = ref(false);
 const saved = ref(false);
 const error = ref('');
-
-const categoryOptions = computed(() =>
-  form.type === 'food_truck' ? FOOD_CATEGORIES : BUSINESS_CATEGORIES,
-);
 
 async function save() {
   error.value = '';
@@ -51,8 +44,8 @@ async function save() {
       featured: form.featured,
     };
     if (isNew.value) {
-      body.type = form.type;
-      const created = await api.post<Listing>('/publisher/listings', body);
+      if (!selected.value) throw new Error('No calendar selected');
+      const created = await api.post<Listing>(`/publisher/calendars/${selected.value._id}/listings`, body);
       await navigateTo(`/publisher/listings/${created._id}`);
     } else {
       await api.patch(`/publisher/listings/${id.value}`, body);
@@ -76,12 +69,6 @@ async function save() {
 
     <div class="max-w-2xl space-y-6 p-8">
       <div class="card space-y-4 p-6">
-        <div v-if="isNew">
-          <label class="label">Type</label>
-          <select v-model="form.type" class="input">
-            <option v-for="t in LISTING_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
-          </select>
-        </div>
         <div><label class="label">Name</label><input v-model="form.name" class="input" /></div>
         <div><label class="label">Description</label><textarea v-model="form.description" rows="3" class="input" /></div>
         <div class="grid grid-cols-2 gap-4">
@@ -89,18 +76,13 @@ async function save() {
             <label class="label">Category</label>
             <select v-model="form.category" class="input">
               <option value="">—</option>
-              <option v-for="c in categoryOptions" :key="c" :value="c">{{ c }}</option>
+              <option v-for="c in FOOD_CATEGORIES" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
-          <div v-if="form.type === 'food_truck'">
-            <label class="label">Cuisine</label>
-            <input v-model="form.cuisineType" class="input" />
-          </div>
+          <div><label class="label">Cuisine</label><input v-model="form.cuisineType" class="input" /></div>
         </div>
         <div class="flex items-center gap-6">
-          <label class="flex items-center gap-2 text-sm">
-            <input v-model="form.featured" type="checkbox" /> Featured
-          </label>
+          <label class="flex items-center gap-2 text-sm"><input v-model="form.featured" type="checkbox" /> Featured</label>
           <div>
             <label class="label">Status</label>
             <select v-model="form.status" class="input py-1.5 text-sm">
@@ -128,9 +110,7 @@ async function save() {
       </div>
 
       <div class="flex items-center gap-3">
-        <button class="btn-primary" :disabled="saving" @click="save">
-          {{ saving ? 'Saving…' : isNew ? 'Create listing' : 'Save changes' }}
-        </button>
+        <button class="btn-primary" :disabled="saving" @click="save">{{ saving ? 'Saving…' : isNew ? 'Create listing' : 'Save changes' }}</button>
         <span v-if="saved" class="text-sm text-green-600">✓ Saved</span>
         <span v-if="error" class="text-sm text-red-600">{{ error }}</span>
       </div>

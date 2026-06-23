@@ -11,6 +11,10 @@ export class Listing {
   @Prop({ type: Types.ObjectId, ref: 'Publisher', required: true, index: true })
   publisherId: Types.ObjectId;
 
+  /** The calendar this listing belongs to. */
+  @Prop({ type: Types.ObjectId, ref: 'Calendar', required: true, index: true })
+  calendarId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   ownerUserId: Types.ObjectId;
 
@@ -74,5 +78,5 @@ export class Listing {
 }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);
-// Slug is unique within a publisher (hub), not globally.
-ListingSchema.index({ publisherId: 1, slug: 1 }, { unique: true });
+// Slug is unique within a calendar, not globally.
+ListingSchema.index({ calendarId: 1, slug: 1 }, { unique: true });

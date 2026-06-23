@@ -6,8 +6,8 @@ const route = useRoute();
 
 const nav = [
   { label: 'Overview', to: '/admin', icon: 'heroicons:squares-2x2' },
-  { label: 'Publishers', to: '/admin/publishers', icon: 'heroicons:building-library' },
-  { label: 'Pending Claims', to: '/admin/claims', icon: 'heroicons:inbox-arrow-down' },
+  { label: 'Accounts', to: '/admin/publishers', icon: 'heroicons:building-library' },
+  { label: 'Calendars', to: '/admin/calendars', icon: 'heroicons:rectangle-group' },
   { label: 'Listings', to: '/admin/listings', icon: 'heroicons:rectangle-stack' },
 ];
 

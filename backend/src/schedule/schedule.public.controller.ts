@@ -1,45 +1,42 @@
 import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ScheduleService } from './schedule.service';
-import { PublishersService } from '../publishers/publishers.service';
+import { CalendarsService } from '../calendars/calendars.service';
 import { DAYS_OF_WEEK } from '../common/food-categories';
 
 @ApiTags('public')
-@Controller('public/:publisher')
+@Controller('public/:calendar')
 export class SchedulePublicController {
   constructor(
     private readonly schedule: ScheduleService,
-    private readonly publishers: PublishersService,
+    private readonly calendars: CalendarsService,
   ) {}
 
-  /** Listings scheduled on a given weekday (?day=Monday) in this hub. */
   @Get('calendar')
-  async byDay(@Param('publisher') subdomain: string, @Query('day') day: string) {
+  async byDay(@Param('calendar') subdomain: string, @Query('day') day: string) {
     if (!day || !(DAYS_OF_WEEK as readonly string[]).includes(day)) {
       throw new BadRequestException('A valid ?day= weekday is required');
     }
-    const pub = await this.publishers.resolveApproved(subdomain);
-    return this.schedule.calendarByDay(pub._id.toString(), day);
+    const { calendar } = await this.calendars.resolveActive(subdomain);
+    return this.schedule.calendarByDay(calendar._id.toString(), day);
   }
 
-  /** Listings scheduled today in this hub. */
   @Get('calendar/today')
-  async today(@Param('publisher') subdomain: string) {
-    const pub = await this.publishers.resolveApproved(subdomain);
-    return this.schedule.calendarToday(pub._id.toString());
+  async today(@Param('calendar') subdomain: string) {
+    const { calendar } = await this.calendars.resolveActive(subdomain);
+    return this.schedule.calendarToday(calendar._id.toString());
   }
 
-  /** Every active stop for the whole week in this hub (month calendar + map). */
   @Get('calendar/week')
-  async week(@Param('publisher') subdomain: string) {
-    const pub = await this.publishers.resolveApproved(subdomain);
-    return this.schedule.calendarWeek(pub._id.toString());
+  async week(@Param('calendar') subdomain: string) {
+    const { calendar } = await this.calendars.resolveActive(subdomain);
+    return this.schedule.calendarWeek(calendar._id.toString());
   }
 
   /** Public listing profile plus its schedule. */
   @Get('listings/:slug')
-  async profile(@Param('publisher') subdomain: string, @Param('slug') slug: string) {
-    const pub = await this.publishers.resolveApproved(subdomain);
-    return this.schedule.publicProfile(pub._id.toString(), slug);
+  async profile(@Param('calendar') subdomain: string, @Param('slug') slug: string) {
+    const { calendar } = await this.calendars.resolveActive(subdomain);
+    return this.schedule.publicProfile(calendar._id.toString(), slug);
   }
 }

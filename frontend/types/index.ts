@@ -7,12 +7,11 @@ export interface AuthUser {
   role: Role | string;
 }
 
-export interface Publisher {
+/** Publisher == the customer Account (white-label brand owner). */
+export interface Account {
   _id: string;
   userId: string;
   name: string;
-  slug: string;
-  subdomain: string;
   city: string;
   state: string;
   country: string;
@@ -23,23 +22,36 @@ export interface Publisher {
   facebookUrl: string;
   instagramUrl: string;
   contactEmail: string;
-  status: 'pending' | 'approved' | 'suspended';
+  status: 'approved' | 'suspended' | 'pending';
   createdAt?: string;
 }
 
-/** Public branding payload (GET /public/:publisher). */
-export interface HubBranding {
-  id: string;
+export type CalendarType = 'food_truck' | 'musician' | 'vendor' | 'farmers_market' | 'event';
+
+export interface Calendar {
+  _id: string;
+  publisherId: string;
+  type: CalendarType;
   name: string;
   subdomain: string;
-  city: string;
-  state: string;
-  logoUrl: string;
-  primaryColor: string;
-  secondaryColor: string;
-  websiteUrl: string;
-  facebookUrl: string;
-  instagramUrl: string;
+  active: boolean;
+  createdAt?: string;
+}
+
+/** Public hub payload (GET /public/:calendar): the calendar + its account branding. */
+export interface CalendarHub {
+  calendar: { id: string; name: string; type: CalendarType; subdomain: string };
+  brand: {
+    accountName: string;
+    logoUrl: string;
+    primaryColor: string;
+    secondaryColor: string;
+    websiteUrl: string;
+    facebookUrl: string;
+    instagramUrl: string;
+    city: string;
+    state: string;
+  };
 }
 
 export type ListingType =
@@ -52,6 +64,7 @@ export type ListingType =
 export interface Listing {
   _id: string;
   publisherId: string;
+  calendarId: string;
   ownerUserId: string;
   type: ListingType;
   name: string;
@@ -90,6 +103,7 @@ export interface ScheduleEntry {
   id?: string;
   _id?: string;
   listingId: string;
+  calendarId: string;
   publisherId: string;
   title: string;
   date: string | null;
@@ -107,7 +121,6 @@ export interface ScheduleEntry {
   status: 'active' | 'cancelled' | 'pending';
 }
 
-/** A schedule entry joined with its listing — returned by the public calendar. */
 export interface CalendarStop extends ScheduleEntry {
   listing: ListingSummary;
 }
@@ -118,61 +131,57 @@ export interface PublicProfile {
 }
 
 export interface MasterDashboard {
-  totalPublishers: number;
-  pendingPublishers: number;
-  approvedPublishers: number;
+  totalAccounts: number;
+  totalCalendars: number;
+  activeCalendars: number;
   totalListings: number;
   pendingListings: number;
-  approvedListings: number;
-  listingsByType: Record<string, number>;
-  recentPublishers: Array<{ id: string; name: string; subdomain: string; status: string }>;
-  recentListings: Array<{ id: string; name: string; type: string; status: string }>;
+  calendarsByType: Record<string, number>;
+  recentAccounts: Array<{ id: string; name: string; status: string }>;
+  recentCalendars: Array<{ id: string; name: string; type: string; subdomain: string; active: boolean }>;
 }
 
-export interface PublisherDashboard {
+export interface CalendarDashboard {
   totalListings: number;
   pendingListings: number;
   approvedListings: number;
   featuredListings: number;
   scheduleStops: number;
-  recentListings: Array<{
-    id: string;
-    name: string;
-    type: string;
-    status: string;
-    slug: string;
-  }>;
+  recentListings: Array<{ id: string; name: string; type: string; status: string; slug: string }>;
 }
 
 export const DAYS_OF_WEEK = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
 ] as const;
 
-export const LISTING_TYPES: { value: ListingType; label: string; icon: string }[] = [
-  { value: 'food_truck', label: 'Food Truck', icon: 'heroicons:truck' },
-  { value: 'business', label: 'Business', icon: 'heroicons:building-storefront' },
-  { value: 'musician', label: 'Musician / Band', icon: 'heroicons:musical-note' },
-  { value: 'vendor', label: 'Vendor', icon: 'heroicons:shopping-bag' },
-  { value: 'event_organizer', label: 'Event Organizer', icon: 'heroicons:calendar' },
+export const CALENDAR_TYPES: { value: CalendarType; label: string; icon: string; listingsLabel: string }[] = [
+  { value: 'food_truck', label: 'Food Trucks', icon: 'heroicons:truck', listingsLabel: 'Food Trucks' },
+  { value: 'musician', label: 'Live Music', icon: 'heroicons:musical-note', listingsLabel: 'Musicians' },
+  { value: 'vendor', label: 'Vendors', icon: 'heroicons:shopping-bag', listingsLabel: 'Vendors' },
+  { value: 'farmers_market', label: 'Farmers Markets', icon: 'heroicons:building-storefront', listingsLabel: 'Markets' },
+  { value: 'event', label: 'Events', icon: 'heroicons:calendar', listingsLabel: 'Events' },
 ];
 
+export function calendarTypeLabel(type: string): string {
+  return CALENDAR_TYPES.find((t) => t.value === type)?.label ?? type;
+}
+export function calendarListingsLabel(type: string): string {
+  return CALENDAR_TYPES.find((t) => t.value === type)?.listingsLabel ?? 'Listings';
+}
+
+const LISTING_TYPE_LABELS: Record<string, string> = {
+  food_truck: 'Food Truck',
+  business: 'Business',
+  musician: 'Musician',
+  vendor: 'Vendor',
+  event_organizer: 'Event',
+};
 export function listingTypeLabel(type: string): string {
-  return LISTING_TYPES.find((t) => t.value === type)?.label ?? type;
+  return LISTING_TYPE_LABELS[type] ?? type;
 }
 
 export const FOOD_CATEGORIES = [
   'BBQ', 'Tacos', 'Burgers', 'Pizza', 'Coffee', 'Dessert', 'Ice Cream',
   'Seafood', 'Asian', 'Mediterranean', 'Vegan', 'Breakfast', 'Comfort Food',
   'Mexican', 'Other',
-] as const;
-
-export const BUSINESS_CATEGORIES = [
-  'Restaurant', 'Retail', 'Services', 'Health & Wellness', 'Beauty', 'Fitness',
-  'Entertainment', 'Professional', 'Home & Garden', 'Automotive', 'Other',
 ] as const;

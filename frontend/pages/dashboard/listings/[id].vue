@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Listing, ScheduleEntry } from '~/types';
-import { FOOD_CATEGORIES, BUSINESS_CATEGORIES, DAYS_OF_WEEK, listingTypeLabel } from '~/types';
+import { FOOD_CATEGORIES, DAYS_OF_WEEK, listingTypeLabel } from '~/types';
 
 definePageMeta({ layout: 'owner', middleware: 'owner' });
 
@@ -28,9 +28,7 @@ const savedProfile = ref(false);
 const uploadingLogo = ref(false);
 const uploadingCover = ref(false);
 
-const categoryOptions = computed(() =>
-  form.type === 'food_truck' ? FOOD_CATEGORIES : BUSINESS_CATEGORIES,
-);
+const categoryOptions = FOOD_CATEGORIES;
 
 async function saveProfile() {
   savedProfile.value = false;

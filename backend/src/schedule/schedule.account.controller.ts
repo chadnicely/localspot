@@ -1,6 +1,6 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { DashboardsService } from './dashboards.service';
+import { ScheduleService } from './schedule.service';
 import { PublishersService } from '../publishers/publishers.service';
 import { CalendarsService } from '../calendars/calendars.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,22 +9,27 @@ import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 
-@ApiTags('account-dashboard')
+@ApiTags('account-schedule')
 @ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('publisher')
-@Controller('publisher/calendars/:calendarId/dashboard')
-export class PublisherDashboardController {
+@Controller('publisher/calendars/:calendarId/schedule')
+export class ScheduleAccountController {
   constructor(
-    private readonly dashboards: DashboardsService,
+    private readonly schedule: ScheduleService,
     private readonly publishers: PublishersService,
     private readonly calendars: CalendarsService,
   ) {}
 
+  /** All schedule entries in one of the account's calendars (optionally ?day=). */
   @Get()
-  async dashboard(@CurrentUser() user: AuthUser, @Param('calendarId') calendarId: string) {
+  async list(
+    @CurrentUser() user: AuthUser,
+    @Param('calendarId') calendarId: string,
+    @Query('day') day?: string,
+  ) {
     const acc = await this.publishers.getOwnOrThrow(user.id);
     await this.calendars.getInAccountOrThrow(acc._id.toString(), calendarId);
-    return this.dashboards.calendar(calendarId);
+    return this.schedule.allForCalendar(calendarId, day);
   }
 }

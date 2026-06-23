@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth';
-import { LISTING_TYPES } from '~/types';
+import { calendarListingsLabel } from '~/types';
 import type { AuthUser } from '~/types';
 
 definePageMeta({ layout: 'tenant' });
@@ -9,9 +9,9 @@ const route = useRoute();
 const api = useApi();
 const auth = useAuthStore();
 const sub = computed(() => String(route.params.hub));
+const { calendar } = useCalendar();
 
 const form = reactive({
-  type: 'food_truck',
   name: '',
   email: '',
   password: '',
@@ -21,6 +21,10 @@ const form = reactive({
 });
 const error = ref('');
 const loading = ref(false);
+
+const noun = computed(() =>
+  calendar.value ? calendarListingsLabel(calendar.value.type).replace(/s$/, '') : 'listing',
+);
 
 async function submit() {
   error.value = '';
@@ -43,30 +47,13 @@ async function submit() {
 <template>
   <div class="mx-auto max-w-xl px-4 py-12">
     <div class="card p-8">
-      <h1 class="text-2xl font-bold text-gray-900">Add Your Business</h1>
+      <h1 class="text-2xl font-bold text-gray-900">Add your {{ noun.toLowerCase() }}</h1>
       <p class="mt-1 text-gray-500">
-        Submit your listing for the publisher to review. Once approved, you can log in to manage
-        your profile and schedule.
+        Submit your listing to <strong>{{ calendar?.name }}</strong>. Once the publisher approves it,
+        you can log in to manage your profile and schedule.
       </p>
 
       <form class="mt-6 space-y-4" @submit.prevent="submit">
-        <div>
-          <label class="label">What are you listing?</label>
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <button
-              v-for="t in LISTING_TYPES"
-              :key="t.value"
-              type="button"
-              class="flex flex-col items-center gap-1 rounded-lg border p-3 text-xs transition"
-              :class="form.type === t.value ? 'text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
-              :style="form.type === t.value ? { background: 'var(--brand)', borderColor: 'var(--brand)' } : {}"
-              @click="form.type = t.value"
-            >
-              <Icon :name="t.icon" class="h-5 w-5" />
-              {{ t.label }}
-            </button>
-          </div>
-        </div>
         <div><label class="label">Name</label><input v-model="form.name" class="input" required /></div>
         <div><label class="label">Short description</label><textarea v-model="form.description" rows="2" class="input" /></div>
         <div class="grid grid-cols-2 gap-4">

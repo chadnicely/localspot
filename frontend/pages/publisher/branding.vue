@@ -1,21 +1,31 @@
 <script setup lang="ts">
-import type { Publisher } from '~/types';
+import type { Account } from '~/types';
 
 definePageMeta({ layout: 'publisher', middleware: 'publisher' });
 
 const api = useApi();
-const { data: hub, refresh } = await useAsyncData('branding-hub', () =>
-  api.get<Publisher>('/me/publisher'),
+const { data: account, refresh } = await useAsyncData('wl-account', () =>
+  api.get<Account>('/me/publisher'),
 );
 
-const form = reactive<Partial<Publisher>>({});
+const form = reactive<Partial<Account>>({});
 watchEffect(() => {
-  if (hub.value) Object.assign(form, hub.value);
+  if (account.value) Object.assign(form, account.value);
 });
 
 const saving = ref(false);
 const saved = ref(false);
 const uploading = ref(false);
+
+const initials = computed(() =>
+  (form.name || 'A')
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase(),
+);
 
 async function save() {
   saved.value = false;
@@ -55,33 +65,45 @@ async function uploadLogo(e: Event) {
     input.value = '';
   }
 }
+
+async function useInitials() {
+  await api.patch('/me/publisher', { logoUrl: '' });
+  form.logoUrl = '';
+  await refresh();
+}
 </script>
 
 <template>
   <div>
-    <PageHeader title="Hub Setup" subtitle="Set up your white-label site — logo, colours, and details.">
-      <template #actions>
-        <a v-if="hub" :href="`/${hub.subdomain}`" target="_blank" class="btn-secondary">Preview my hub</a>
-      </template>
-    </PageHeader>
+    <PageHeader title="White Label" subtitle="Your logo and colours apply to all of your calendars." />
     <div class="max-w-2xl space-y-6 p-8">
+      <!-- Logo: initials OR upload -->
       <div class="card p-6">
         <h2 class="mb-4 font-semibold text-gray-900">Logo</h2>
-        <div class="flex items-center gap-4">
-          <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+        <div class="flex items-center gap-5">
+          <div
+            class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-gray-200 text-xl font-bold text-white"
+            :style="{ background: form.primaryColor || '#4f46e5' }"
+          >
             <img v-if="form.logoUrl" :src="form.logoUrl" class="h-full w-full object-cover" />
-            <Icon v-else name="heroicons:photo" class="h-7 w-7 text-gray-300" />
+            <span v-else>{{ initials }}</span>
           </div>
-          <label class="btn-secondary cursor-pointer">
-            {{ uploading ? 'Uploading…' : 'Upload logo' }}
-            <input type="file" accept="image/*" class="hidden" @change="uploadLogo" />
-          </label>
+          <div class="flex flex-col gap-2">
+            <label class="btn-secondary cursor-pointer">
+              {{ uploading ? 'Uploading…' : form.logoUrl ? 'Replace logo' : 'Upload your logo' }}
+              <input type="file" accept="image/*" class="hidden" @change="uploadLogo" />
+            </label>
+            <button v-if="form.logoUrl" type="button" class="text-xs text-gray-500 hover:text-red-600" @click="useInitials">
+              Use the initials badge instead
+            </button>
+            <p v-else class="text-xs text-gray-400">No logo? We'll show your initials in your brand color.</p>
+          </div>
         </div>
       </div>
 
       <div class="card space-y-4 p-6">
-        <h2 class="font-semibold text-gray-900">Hub details</h2>
-        <div><label class="label">Hub name</label><input v-model="form.name" class="input" /></div>
+        <h2 class="font-semibold text-gray-900">Brand</h2>
+        <div><label class="label">Account / brand name</label><input v-model="form.name" class="input" /></div>
         <div class="grid grid-cols-2 gap-4">
           <div><label class="label">City</label><input v-model="form.city" class="input" /></div>
           <div><label class="label">State</label><input v-model="form.state" class="input" /></div>
@@ -113,8 +135,7 @@ async function uploadLogo(e: Event) {
       </div>
 
       <div class="flex items-center gap-3">
-        <button class="btn-primary" :disabled="saving" @click="save">{{ saving ? 'Saving…' : 'Save branding' }}</button>
-        <a v-if="hub" :href="`/${hub.subdomain}`" target="_blank" class="btn-secondary">Preview hub</a>
+        <button class="btn-primary" :disabled="saving" @click="save">{{ saving ? 'Saving…' : 'Save white label' }}</button>
         <span v-if="saved" class="text-sm text-green-600">✓ Saved</span>
       </div>
     </div>

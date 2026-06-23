@@ -5,6 +5,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UsersService } from './users/users.service';
 import { Publisher, PublisherDocument } from './publishers/publisher.schema';
+import { Calendar, CalendarDocument } from './calendars/calendar.schema';
 import { Listing, ListingDocument } from './listings/listing.schema';
 import { ScheduleEntry, ScheduleEntryDocument } from './schedule/schedule-entry.schema';
 import { slugify } from './common/slug.util';
@@ -19,50 +20,43 @@ interface StopSeed {
   lat?: number;
   lng?: number;
 }
-
-interface ListingSeed {
-  type: string;
+interface TruckSeed {
   name: string;
   ownerEmail: string;
   description: string;
-  category?: string;
-  cuisineType?: string;
+  cuisineType: string;
   phone?: string;
-  websiteUrl?: string;
-  facebookUrl?: string;
-  instagramUrl?: string;
   featured?: boolean;
   schedule?: StopSeed[];
 }
-
-interface PublisherSeed {
+interface AccountSeed {
   name: string;
-  subdomain: string;
+  ownerEmail: string;
   city: string;
   state: string;
   primaryColor: string;
   secondaryColor: string;
-  ownerEmail: string;
-  listings: ListingSeed[];
+  calendarName: string;
+  calendarSubdomain: string;
+  trucks: TruckSeed[];
 }
 
-const PUBLISHERS: PublisherSeed[] = [
+const ACCOUNTS: AccountSeed[] = [
   {
     name: 'North Port Matters',
-    subdomain: 'northport',
+    ownerEmail: 'publisher@northportmatters.com',
     city: 'North Port',
     state: 'FL',
     primaryColor: '#dc2626',
     secondaryColor: '#1f3559',
-    ownerEmail: 'publisher@northportmatters.com',
-    listings: [
+    calendarName: 'North Port Food Trucks',
+    calendarSubdomain: 'northportfoodtrucks',
+    trucks: [
       {
-        type: 'food_truck',
         name: "Rosie's Red Truck",
         ownerEmail: 'rosie@example.com',
         description:
-          "Rosie's Red Truck serves authentic Mexican street tacos, burritos, quesadillas and homemade salsa made fresh daily!",
-        category: 'Mexican',
+          "Authentic Mexican street tacos, burritos, quesadillas and homemade salsa made fresh daily!",
         cuisineType: 'Mexican',
         phone: '(941) 555-0101',
         featured: true,
@@ -73,11 +67,9 @@ const PUBLISHERS: PublisherSeed[] = [
         ],
       },
       {
-        type: 'food_truck',
         name: 'Big Daddy BBQ',
         ownerEmail: 'bigdaddy@example.com',
         description: 'Low-and-slow smoked brisket, pulled pork, ribs and classic Southern sides.',
-        category: 'BBQ',
         cuisineType: 'BBQ',
         phone: '(941) 555-0102',
         schedule: [
@@ -86,11 +78,9 @@ const PUBLISHERS: PublisherSeed[] = [
         ],
       },
       {
-        type: 'food_truck',
         name: 'Kona Ice',
         ownerEmail: 'kona@example.com',
         description: 'Tropical shaved ice and sweet treats — perfect for a hot Florida afternoon.',
-        category: 'Dessert',
         cuisineType: 'Dessert',
         phone: '(941) 555-0103',
         schedule: [
@@ -98,40 +88,22 @@ const PUBLISHERS: PublisherSeed[] = [
           { dayOfWeek: 'Sunday', startTime: '12:00', endTime: '17:00', locationName: 'Butler Park', lat: 27.047, lng: -82.232 },
         ],
       },
-      {
-        type: 'business',
-        name: 'North Port Coffee Co.',
-        ownerEmail: 'npcoffee@example.com',
-        description: 'Locally roasted coffee, pastries, and a cozy spot to work or meet friends.',
-        category: 'Restaurant',
-        phone: '(941) 555-0110',
-        featured: true,
-      },
-      {
-        type: 'business',
-        name: 'Gulfshore Hardware',
-        ownerEmail: 'gulfshore@example.com',
-        description: 'Family-owned hardware store serving North Port since 1998.',
-        category: 'Home & Garden',
-        phone: '(941) 555-0111',
-      },
     ],
   },
   {
     name: 'West Valley Shoutouts',
-    subdomain: 'westvalley',
+    ownerEmail: 'publisher@westvalley.com',
     city: 'Buckeye',
     state: 'AZ',
     primaryColor: '#0d9488',
     secondaryColor: '#0f3d3a',
-    ownerEmail: 'publisher@westvalley.com',
-    listings: [
+    calendarName: 'West Valley Food Trucks',
+    calendarSubdomain: 'westvalleyfoodtrucks',
+    trucks: [
       {
-        type: 'food_truck',
         name: 'Sonoran Dogs AZ',
         ownerEmail: 'sonoran@example.com',
         description: 'Bacon-wrapped Sonoran hot dogs, street corn, and aguas frescas.',
-        category: 'Mexican',
         cuisineType: 'Mexican',
         phone: '(623) 555-0201',
         featured: true,
@@ -141,25 +113,14 @@ const PUBLISHERS: PublisherSeed[] = [
         ],
       },
       {
-        type: 'food_truck',
         name: 'Desert Smoke BBQ',
         ownerEmail: 'desertsmoke@example.com',
         description: 'Texas-style brisket and ribs smoked over mesquite.',
-        category: 'BBQ',
         cuisineType: 'BBQ',
         phone: '(623) 555-0202',
         schedule: [
           { dayOfWeek: 'Saturday', startTime: '11:00', endTime: '16:00', locationName: 'Buckeye Farmers Market', lat: 33.37, lng: -112.583 },
         ],
-      },
-      {
-        type: 'business',
-        name: 'Cactus Bloom Boutique',
-        ownerEmail: 'cactusbloom@example.com',
-        description: 'Southwest-inspired clothing, gifts, and handmade jewelry.',
-        category: 'Retail',
-        phone: '(623) 555-0210',
-        featured: true,
       },
     ],
   },
@@ -169,6 +130,7 @@ export async function seedDatabase(app: INestApplicationContext): Promise<void> 
   const config = app.get(ConfigService);
   const users = app.get(UsersService);
   const publisherModel = app.get<Model<PublisherDocument>>(getModelToken(Publisher.name));
+  const calendarModel = app.get<Model<CalendarDocument>>(getModelToken(Calendar.name));
   const listingModel = app.get<Model<ListingDocument>>(getModelToken(Listing.name));
   const scheduleModel = app.get<Model<ScheduleEntryDocument>>(getModelToken(ScheduleEntry.name));
 
@@ -183,77 +145,85 @@ export async function seedDatabase(app: INestApplicationContext): Promise<void> 
     console.log(`✓ Created master admin ${adminEmail} / ${adminPassword}`);
   }
 
-  // 2. Publishers + their listings + schedules
-  for (const p of PUBLISHERS) {
-    let pubUser = await users.findByEmail(p.ownerEmail);
-    if (!pubUser) {
-      pubUser = await users.create(p.name, p.ownerEmail, 'ChangeMe123!', 'publisher');
-      console.log(`✓ Created publisher user ${p.ownerEmail} / ChangeMe123!`);
+  // 2. Accounts -> Calendar -> Listings -> Schedules
+  for (const a of ACCOUNTS) {
+    let owner = await users.findByEmail(a.ownerEmail);
+    if (!owner) {
+      owner = await users.create(a.name, a.ownerEmail, 'ChangeMe123!', 'publisher');
+      console.log(`✓ Account owner ${a.ownerEmail} / ChangeMe123!`);
     }
 
-    let publisher = await publisherModel.findOne({ subdomain: p.subdomain }).exec();
-    const pubProfile = {
-      userId: pubUser._id,
-      name: p.name,
-      slug: p.subdomain,
-      subdomain: p.subdomain,
-      city: p.city,
-      state: p.state,
+    let account = await publisherModel.findOne({ userId: owner._id }).exec();
+    const accProfile = {
+      userId: owner._id,
+      name: a.name,
+      city: a.city,
+      state: a.state,
       country: 'USA',
-      primaryColor: p.primaryColor,
-      secondaryColor: p.secondaryColor,
-      contactEmail: p.ownerEmail,
+      primaryColor: a.primaryColor,
+      secondaryColor: a.secondaryColor,
+      contactEmail: a.ownerEmail,
       status: 'approved' as const,
     };
-    if (!publisher) {
-      publisher = await publisherModel.create(pubProfile);
-      console.log(`✓ Created hub ${p.name} (${p.subdomain})`);
+    if (!account) {
+      account = await publisherModel.create(accProfile);
+      console.log(`✓ Account ${a.name}`);
     } else {
-      await publisherModel.updateOne({ _id: publisher._id }, pubProfile).exec();
-      console.log(`• Updated hub ${p.name}`);
+      await publisherModel.updateOne({ _id: account._id }, accProfile).exec();
     }
 
-    for (const l of p.listings) {
-      let owner = await users.findByEmail(l.ownerEmail);
-      if (!owner) {
-        owner = await users.create(l.name, l.ownerEmail, 'ChangeMe123!', 'listing_owner');
-        console.log(`  ✓ Owner ${l.ownerEmail} / ChangeMe123!`);
-      }
+    let calendar = await calendarModel.findOne({ subdomain: a.calendarSubdomain }).exec();
+    const calProfile = {
+      publisherId: account._id,
+      type: 'food_truck',
+      name: a.calendarName,
+      subdomain: a.calendarSubdomain,
+      active: true,
+    };
+    if (!calendar) {
+      calendar = await calendarModel.create(calProfile);
+      console.log(`  ✓ Calendar /${a.calendarSubdomain}`);
+    } else {
+      await calendarModel.updateOne({ _id: calendar._id }, calProfile).exec();
+    }
 
-      const slug = slugify(l.name);
+    for (const t of a.trucks) {
+      let truckOwner = await users.findByEmail(t.ownerEmail);
+      if (!truckOwner) {
+        truckOwner = await users.create(t.name, t.ownerEmail, 'ChangeMe123!', 'listing_owner');
+      }
+      const slug = slugify(t.name);
       const listingProfile = {
-        publisherId: publisher._id,
-        ownerUserId: owner._id,
-        type: l.type,
-        name: l.name,
+        publisherId: account._id,
+        calendarId: calendar._id,
+        ownerUserId: truckOwner._id,
+        type: 'food_truck',
+        name: t.name,
         slug,
-        description: l.description,
-        category: l.category ?? '',
-        cuisineType: l.cuisineType ?? '',
-        phone: l.phone ?? '',
-        email: l.ownerEmail,
-        websiteUrl: l.websiteUrl ?? '',
-        facebookUrl: l.facebookUrl ?? '',
-        instagramUrl: l.instagramUrl ?? '',
+        description: t.description,
+        category: t.cuisineType,
+        cuisineType: t.cuisineType,
+        phone: t.phone ?? '',
+        email: t.ownerEmail,
         status: 'approved' as const,
-        featured: l.featured ?? false,
+        featured: t.featured ?? false,
       };
       let listing = await listingModel
-        .findOne({ publisherId: publisher._id, slug })
+        .findOne({ calendarId: calendar._id, slug })
         .exec();
       if (!listing) {
         listing = await listingModel.create(listingProfile);
-        console.log(`  ✓ Listing ${l.name} [${l.type}]`);
+        console.log(`    ✓ ${t.name}`);
       } else {
         await listingModel.updateOne({ _id: listing._id }, listingProfile).exec();
       }
 
-      // Reset + reseed schedule
       await scheduleModel.deleteMany({ listingId: listing._id }).exec();
-      if (l.schedule?.length) {
+      if (t.schedule?.length) {
         await scheduleModel.insertMany(
-          l.schedule.map((s) => ({
-            publisherId: publisher!._id as Types.ObjectId,
+          t.schedule.map((s) => ({
+            publisherId: account!._id as Types.ObjectId,
+            calendarId: calendar!._id as Types.ObjectId,
             listingId: listing!._id,
             title: '',
             dayOfWeek: s.dayOfWeek,
@@ -261,8 +231,8 @@ export async function seedDatabase(app: INestApplicationContext): Promise<void> 
             endTime: s.endTime,
             locationName: s.locationName,
             address: s.address ?? '',
-            city: p.city,
-            state: p.state,
+            city: a.city,
+            state: a.state,
             latitude: s.lat ?? null,
             longitude: s.lng ?? null,
             externalLink: '',
@@ -275,6 +245,7 @@ export async function seedDatabase(app: INestApplicationContext): Promise<void> 
     }
   }
 
-  console.log('\nSeed summary:');
-  console.log(`  ${PUBLISHERS.length} hubs, ${PUBLISHERS.reduce((n, p) => n + p.listings.length, 0)} listings`);
+  console.log('\nSeed complete:');
+  console.log(`  ${ACCOUNTS.length} accounts, each with a Food Truck calendar`);
+  console.log('  Public sites: /northportfoodtrucks  /westvalleyfoodtrucks');
 }

@@ -5,8 +5,15 @@ import { listingTypeLabel } from '~/types';
 definePageMeta({ layout: 'publisher', middleware: 'publisher' });
 
 const api = useApi();
-const { data: listings, refresh } = await useAsyncData('pub-listings', () =>
-  api.get<Listing[]>('/publisher/listings'),
+const { selected } = useCalendars();
+
+const { data: listings, refresh } = await useAsyncData(
+  () => `cal-listings-${selected.value?._id || 'none'}`,
+  () =>
+    selected.value
+      ? api.get<Listing[]>(`/publisher/calendars/${selected.value._id}/listings`)
+      : Promise.resolve([] as Listing[]),
+  { watch: [selected], default: () => [] as Listing[] },
 );
 
 async function patch(l: Listing, body: Partial<Listing>) {
@@ -22,21 +29,23 @@ async function remove(l: Listing) {
 
 <template>
   <div>
-    <PageHeader title="Listings" subtitle="Approve, feature, and manage local listings.">
+    <PageHeader :title="`Listings`" :subtitle="selected ? `In ${selected.name}` : ''">
       <template #actions>
-        <NuxtLink to="/publisher/listings/new" class="btn-primary">
+        <NuxtLink v-if="selected" to="/publisher/listings/new" class="btn-primary">
           <Icon name="heroicons:plus" class="h-4 w-4" /> Add listing
         </NuxtLink>
       </template>
     </PageHeader>
 
     <div class="p-8">
-      <div class="card overflow-hidden">
+      <div v-if="!selected" class="card px-6 py-16 text-center text-gray-400">
+        Create a calendar first.
+      </div>
+      <div v-else class="card overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
               <th class="px-4 py-3">Listing</th>
-              <th class="px-4 py-3">Type</th>
               <th class="px-4 py-3">Status</th>
               <th class="px-4 py-3">Featured</th>
               <th class="px-4 py-3 text-right">Actions</th>
@@ -50,16 +59,12 @@ async function remove(l: Listing) {
                   <span class="font-medium text-navy-700">{{ l.name }}</span>
                 </div>
               </td>
-              <td class="px-4 py-3">{{ listingTypeLabel(l.type) }}</td>
               <td class="px-4 py-3">
-                <span
-                  class="badge"
-                  :class="{
-                    'bg-green-100 text-green-700': l.status === 'approved',
-                    'bg-amber-100 text-amber-700': l.status === 'pending',
-                    'bg-red-100 text-red-700': l.status === 'suspended',
-                  }"
-                >{{ l.status }}</span>
+                <span class="badge" :class="{
+                  'bg-green-100 text-green-700': l.status === 'approved',
+                  'bg-amber-100 text-amber-700': l.status === 'pending',
+                  'bg-red-100 text-red-700': l.status === 'suspended',
+                }">{{ l.status }}</span>
               </td>
               <td class="px-4 py-3">
                 <button class="text-lg" :class="l.featured ? 'text-amber-500' : 'text-gray-300'" @click="patch(l, { featured: !l.featured })">★</button>
@@ -74,7 +79,7 @@ async function remove(l: Listing) {
               </td>
             </tr>
             <tr v-if="!(listings && listings.length)">
-              <td colspan="5" class="px-4 py-12 text-center text-gray-400">No listings yet.</td>
+              <td colspan="4" class="px-4 py-12 text-center text-gray-400">No listings in this calendar yet.</td>
             </tr>
           </tbody>
         </table>

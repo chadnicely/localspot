@@ -8,10 +8,10 @@ const features = [
   { icon: 'heroicons:shopping-bag', title: 'Markets & Vendors', text: 'Farmers markets and pop-ups.' },
 ];
 
-// Demo hubs to explore
+// Demo calendars to explore
 const hubs = [
-  { sub: 'northport', name: 'North Port Matters', place: 'North Port, FL' },
-  { sub: 'westvalley', name: 'West Valley Shoutouts', place: 'Buckeye, AZ' },
+  { sub: 'northportfoodtrucks', name: 'North Port Food Trucks', place: 'North Port, FL' },
+  { sub: 'westvalleyfoodtrucks', name: 'West Valley Food Trucks', place: 'Buckeye, AZ' },
 ];
 </script>
 

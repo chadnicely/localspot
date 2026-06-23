@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PublishersModule } from './publishers/publishers.module';
+import { CalendarsModule } from './calendars/calendars.module';
 import { ListingsModule } from './listings/listings.module';
 import { ScheduleModule } from './schedule/schedule.module';
 import { DashboardsModule } from './dashboards/dashboards.module';
@@ -26,6 +27,7 @@ import { DashboardsModule } from './dashboards/dashboards.module';
     AuthModule,
     UsersModule,
     PublishersModule,
+    CalendarsModule,
     ListingsModule,
     ScheduleModule,
     DashboardsModule,
